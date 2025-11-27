@@ -32,6 +32,8 @@ app.use((req, res, next) => {
 
 // Serve static files
 app.use(express.static(join(__dirname, '../client/public')));
+// Serve server assets (sprites, audio)
+app.use('/assets', express.static(join(__dirname, 'assets')));
 app.use(express.json());
 
 // Serve config.json
