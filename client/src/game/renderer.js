@@ -647,7 +647,7 @@ export class GameRenderer extends Phaser.Scene {
     
     // Battle phase - drag for path drawing
     this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && pointer.isDown) {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && this.isDrawingPath && pointer.isDown) {
         this.handleBattleDrag(pointer);
       }
     });
@@ -748,7 +748,7 @@ export class GameRenderer extends Phaser.Scene {
             this.currentPathTiles = []; // Start with empty path - will be filled by drag
             this.aimingMode = true;
             this.pathSelectionMode = true;
-            this.isDrawingPath = false; // Will be set to true when drag starts
+            this.isDrawingPath = true; // Enable drawing immediately after launcher selection
             
             // Initialize path highlight graphics
             if (!this.pathHighlightGraphics) {
@@ -768,7 +768,21 @@ export class GameRenderer extends Phaser.Scene {
             // Hide unit panel buttons in battle phase
             this.hideUnitPanelInBattle();
             
-            return;
+            // Start path from launcher position or clicked position
+            // Don't return - allow drag to continue
+            logger.info('Aiming mode activated, ready for drag', {
+              launcherId: clickedLauncher.id,
+              gridX,
+              gridY,
+              isPlayerGrid
+            });
+            
+            // Start path from clicked position (can be on launcher or nearby)
+            const startTile = { x: gridX, y: gridY, isPlayerGrid };
+            this.currentPathTiles = [startTile];
+            this.drawPathHighlight();
+            
+            // Continue to allow drag - don't return here
           }
         }
       }
@@ -790,12 +804,21 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattleDrag(pointer) {
-    if (!this.aimingMode || !this.selectedLauncherForShots) return;
+    if (!this.aimingMode || !this.selectedLauncherForShots || !this.isDrawingPath) {
+      logger.warn('Drag blocked', {
+        aimingMode: this.aimingMode,
+        selectedLauncher: this.selectedLauncherForShots?.id,
+        isDrawingPath: this.isDrawingPath
+      });
+      return;
+    }
     
     logger.info('Drag in battle phase', {
       aimingMode: this.aimingMode,
       selectedLauncher: this.selectedLauncherForShots?.id,
-      pathLength: this.currentPathTiles?.length || 0
+      pathLength: this.currentPathTiles?.length || 0,
+      pointerX: pointer.x,
+      pointerY: pointer.y
     });
     
     const separatorWidth = 4;
@@ -821,9 +844,9 @@ export class GameRenderer extends Phaser.Scene {
     // If path is empty, start from current tile
     if (!this.currentPathTiles || this.currentPathTiles.length === 0) {
       this.currentPathTiles = [newTile];
-      this.isDrawingPath = true;
       this.drawPathHighlight();
-      this.updateBarootDisplay(); // Update baroot based on path
+      this.updateBarootDisplay();
+      logger.info('Path started from drag', { tile: newTile });
       return;
     }
     
@@ -833,7 +856,8 @@ export class GameRenderer extends Phaser.Scene {
       // Backward drag - reset path to this cell
       this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
       this.drawPathHighlight();
-      this.updateBarootDisplay(); // Update baroot based on path
+      this.updateBarootDisplay();
+      logger.info('Path truncated by backward drag', { newLength: this.currentPathTiles.length });
       return;
     }
     
@@ -848,7 +872,11 @@ export class GameRenderer extends Phaser.Scene {
         // Add new adjacent tile
         this.currentPathTiles.push(newTile);
         this.drawPathHighlight();
-        this.updateBarootDisplay(); // Update baroot based on path
+        this.updateBarootDisplay();
+        logger.info('Tile added to path', { 
+          newTile, 
+          pathLength: this.currentPathTiles.length 
+        });
       }
     }
   }
