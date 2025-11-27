@@ -45,7 +45,26 @@ DWI-BS/
 - Node.js 18+ 
 - npm or yarn
 
-### Server Setup
+### Quick Start (Recommended)
+
+```bash
+# Install dependencies
+cd server && npm install && cd ../client && npm install && cd ..
+
+# Start both server and client
+npm start
+```
+
+Or use the restart script:
+```bash
+./scripts/restart.sh
+```
+
+The server will run on `http://localhost:3000` and client on `http://localhost:5173`
+
+### Manual Setup
+
+#### Server Setup
 
 ```bash
 cd server
@@ -55,7 +74,7 @@ npm start
 
 The server will run on `http://localhost:3000`
 
-### Client Setup
+#### Client Setup
 
 ```bash
 cd client
@@ -64,6 +83,14 @@ npm run dev
 ```
 
 The client will run on `http://localhost:5173`
+
+### Stop Services
+
+```bash
+npm run stop
+# or
+./scripts/stop.sh
+```
 
 ## How to Play
 

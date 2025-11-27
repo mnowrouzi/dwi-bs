@@ -2,31 +2,62 @@
 
 ## Installation & Running
 
-### 1. Install Server Dependencies
+### Quick Start (Recommended)
+
+```bash
+# Install all dependencies
+cd server && npm install && cd ../client && npm install && cd ..
+
+# Start both server and client
+npm start
+# or
+./scripts/restart.sh
+```
+
+Server: `http://localhost:3000`  
+Client: `http://localhost:5173`
+
+### Manual Setup
+
+#### 1. Install Server Dependencies
 ```bash
 cd server
 npm install
 ```
 
-### 2. Install Client Dependencies
+#### 2. Install Client Dependencies
 ```bash
 cd ../client
 npm install
 ```
 
-### 3. Start the Server
+#### 3. Start the Server
 ```bash
 cd server
 npm start
 ```
 Server will run on `http://localhost:3000`
 
-### 4. Start the Client (in a new terminal)
+#### 4. Start the Client (in a new terminal)
 ```bash
 cd client
 npm run dev
 ```
 Client will run on `http://localhost:5173`
+
+### Restart After Changes
+
+```bash
+# Stop everything
+npm run stop
+# or
+./scripts/stop.sh
+
+# Start again
+npm start
+# or
+./scripts/restart.sh
+```
 
 ## Playing the Game
 
