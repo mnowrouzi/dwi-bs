@@ -127,6 +127,7 @@ function handlePlaceUnits(ws, data) {
   const result = gameManager.placeUnits(playerId, data.units);
   
   if (result.success) {
+    // Budget is already broadcasted in placeUnits, but send confirmation to the player
     ws.send(JSON.stringify({
       type: MESSAGE_TYPES.BUILD_PHASE_STATE,
       playerId,

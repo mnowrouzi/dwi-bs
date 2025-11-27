@@ -720,6 +720,7 @@ export class GameRenderer extends Phaser.Scene {
         // If we're in waiting phase, the server should start build phase
         // But if we're already in build phase, we just show the notification
       }
+      // Don't start timer here - wait for BUILD_PHASE_STATE message
     }
   }
 
@@ -752,8 +753,10 @@ export class GameRenderer extends Phaser.Scene {
       this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
     }
     
-    // Start 30-second timer for build phase
+    // Start 30-second timer for build phase only once when both players are connected
+    // Check if we have 2 players (both connected) before starting timer
     if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer) {
+      // Timer starts when build phase state is received (which means both players are connected)
       this.startBuildPhaseTimer();
     }
   }
@@ -764,14 +767,15 @@ export class GameRenderer extends Phaser.Scene {
       clearTimeout(this.buildPhaseTimer);
     }
     
-    // Start 30-second countdown
+    // Start 30-second countdown - position timer to the right of budget text
     let timeLeft = 30;
-    const timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
+    const timerText = this.add.text(GRID_OFFSET_X + 200, GRID_OFFSET_Y - 60, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
       fontSize: '16px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
-      fontWeight: 'bold'
-    }).setOrigin(0, 0);
+      fontWeight: 'bold',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0, 0).setDepth(100);
     
     const countdown = setInterval(() => {
       timeLeft--;

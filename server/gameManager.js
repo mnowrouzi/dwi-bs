@@ -13,6 +13,8 @@ export class GameManager {
     this.players = new Map(); // playerId -> { ws, units, ready, mana, shotsThisTurn }
     this.phase = GAME_PHASES.WAITING;
     this.currentTurn = null;
+    // Shared budget for both players
+    this.sharedBuildBudget = config.buildBudget;
   }
 
   addPlayer(playerId, ws) {
@@ -24,8 +26,8 @@ export class GameManager {
       },
       ready: false,
       mana: this.config.mana.startMana,
-      shotsThisTurn: 0,
-      budget: this.config.budget
+      shotsThisTurn: 0
+      // Note: buildBudget is now shared, not per player
     });
   }
 
@@ -43,11 +45,13 @@ export class GameManager {
 
   startBuildPhase() {
     this.phase = GAME_PHASES.BUILD;
-    logger.room(this.roomId, 'Build phase started');
+    // Reset shared budget when build phase starts
+    this.sharedBuildBudget = this.config.buildBudget;
+    logger.room(this.roomId, 'Build phase started', { sharedBuildBudget: this.sharedBuildBudget });
     this.broadcast({
       type: MESSAGE_TYPES.BUILD_PHASE_STATE,
       phase: GAME_PHASES.BUILD,
-      buildBudget: this.config.buildBudget,
+      buildBudget: this.sharedBuildBudget,
       gridSize: this.config.gridSize
     });
   }
@@ -101,7 +105,8 @@ export class GameManager {
       }
     }
 
-    if (totalCost > player.buildBudget) {
+    // Check against shared budget
+    if (totalCost > this.sharedBuildBudget) {
       return { success: false, error: 'Insufficient budget' };
     }
 
@@ -125,12 +130,22 @@ export class GameManager {
     // Place units
     player.units.launchers = placedUnits.launchers;
     player.units.defenses = placedUnits.defenses;
-    player.buildBudget -= totalCost;
+    
+    // Deduct from shared budget
+    this.sharedBuildBudget -= totalCost;
+    
+    // Broadcast updated budget to all players
+    this.broadcast({
+      type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+      phase: GAME_PHASES.BUILD,
+      buildBudget: this.sharedBuildBudget,
+      gridSize: this.config.gridSize
+    });
 
     return {
       success: true,
       units: placedUnits,
-      remainingBudget: player.buildBudget
+      remainingBudget: this.sharedBuildBudget
     };
   }
 
