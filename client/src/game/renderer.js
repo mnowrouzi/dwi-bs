@@ -1732,7 +1732,7 @@ export class GameRenderer extends Phaser.Scene {
       if (this.pathHighlightGraphics) {
         this.pathHighlightGraphics.clear();
       }
-      // Clear launcher highlight
+      // Clear launcher highlight when timer expires without valid path
       this.clearLauncherHighlight();
       // Disable FIRE button (keep visible but disabled)
       if (this.fireButton) {
