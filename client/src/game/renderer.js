@@ -1006,16 +1006,37 @@ export class GameRenderer extends Phaser.Scene {
     
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    const playerGridEndX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE);
+    const enemyGridEndX = opponentOffsetX + (this.gridSize * GRID_TILE_SIZE);
     
-    // Determine which grid
-    let gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
-    let gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
-    let isPlayerGrid = true;
+    // Determine which grid the pointer is on
+    let gridX, gridY, isPlayerGrid;
     
-    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+    if (pointer.x >= GRID_OFFSET_X && pointer.x < playerGridEndX) {
+      // Player grid
+      gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
+      gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+      isPlayerGrid = true;
+    } else if (pointer.x >= opponentOffsetX && pointer.x < enemyGridEndX) {
+      // Enemy grid
       gridX = Math.floor((pointer.x - opponentOffsetX) / GRID_TILE_SIZE);
       gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
       isPlayerGrid = false;
+    } else {
+      // Outside both grids
+      logger.info('Drag outside grids', { 
+        pointerX: pointer.x,
+        pointerY: pointer.y,
+        playerGridRange: { start: GRID_OFFSET_X, end: playerGridEndX },
+        enemyGridRange: { start: opponentOffsetX, end: enemyGridEndX }
+      });
+      return;
+    }
+    
+    // Validate grid coordinates
+    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      logger.info('Drag outside grid bounds', { gridX, gridY, gridSize: this.gridSize, isPlayerGrid });
+      return;
     }
     
     logger.info('Drag on grid cell', {
@@ -1026,11 +1047,6 @@ export class GameRenderer extends Phaser.Scene {
       pointerY: pointer.y,
       currentPathLength: this.currentPathTiles?.length || 0
     });
-    
-    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
-      logger.info('Drag outside grids', { gridX, gridY, gridSize: this.gridSize });
-      return; // Outside grids
-    }
     
     const newTile = { x: gridX, y: gridY, isPlayerGrid };
     
