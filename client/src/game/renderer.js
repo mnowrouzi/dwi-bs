@@ -772,35 +772,51 @@ export class GameRenderer extends Phaser.Scene {
     
     // If no launcher selected, check if clicking on a launcher
     if (!this.selectedLauncherForShots) {
+      // Check both playerUnits and unitPlacement for launchers
+      const allLaunchers = [];
+      
+      // Get launchers from playerUnits (from server)
+      if (this.playerUnits && this.playerUnits.launchers) {
+        allLaunchers.push(...this.playerUnits.launchers);
+      }
+      
+      // Also check unitPlacement for placed units (client-side)
+      if (this.unitPlacement && this.unitPlacement.placedUnits) {
+        const placedLaunchers = this.unitPlacement.placedUnits
+          .filter(u => u.type === 'launcher')
+          .map(u => ({
+            id: `placed_${u.x}_${u.y}`,
+            type: u.launcherType,
+            x: u.x,
+            y: u.y,
+            destroyed: false
+          }));
+        allLaunchers.push(...placedLaunchers);
+      }
+      
       logger.info('=== Checking for launcher click ===', {
         isPlayerGrid,
         gridX,
         gridY,
         hasPlayerUnits: !!this.playerUnits,
-        launchersCount: this.playerUnits?.launchers?.length || 0,
-        launchers: this.playerUnits?.launchers?.map(l => ({
+        playerUnitsLaunchersCount: this.playerUnits?.launchers?.length || 0,
+        unitPlacementLaunchersCount: this.unitPlacement?.placedUnits?.filter(u => u.type === 'launcher').length || 0,
+        allLaunchersCount: allLaunchers.length,
+        allLaunchers: allLaunchers.map(l => ({
           id: l.id,
           type: l.type,
           x: l.x,
           y: l.y,
           destroyed: l.destroyed
-        })) || []
+        }))
       });
       
       if (isPlayerGrid) {
-        if (!this.playerUnits) {
-          logger.warn('playerUnits is null or undefined');
+        if (allLaunchers.length === 0) {
+          logger.warn('No launchers found in playerUnits or unitPlacement');
           return;
         }
-        if (!this.playerUnits.launchers) {
-          logger.warn('playerUnits.launchers is null or undefined');
-          return;
-        }
-        if (this.playerUnits.launchers.length === 0) {
-          logger.warn('No launchers found in playerUnits');
-          return;
-        }
-        const clickedLauncher = this.playerUnits.launchers.find(l => {
+        const clickedLauncher = allLaunchers.find(l => {
           if (l.destroyed) {
             logger.info('Launcher destroyed, skipping', { launcherId: l.id });
             return false;
