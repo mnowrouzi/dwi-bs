@@ -506,12 +506,6 @@ export class GameRenderer extends Phaser.Scene {
           btn.setFillStyle(0x3f5765);
         }
       });
-    
-    // Store references to hide/show in battle phase
-    this.launcherButtonsGroup = {
-      label: launcherLabel,
-      buttons: this.launcherButtons
-    };
       
       this.add.text(btnX, btnY - 20, launcher.titleFA, {
         fontSize: '11px',
