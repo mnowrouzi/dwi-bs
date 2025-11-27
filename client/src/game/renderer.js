@@ -633,6 +633,20 @@ export class GameRenderer extends Phaser.Scene {
       .setStrokeStyle(2, 0xffd700)
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD && !this.isReady) {
+          // Check if player has at least one launcher before allowing ready
+          const launchers = this.playerUnits?.launchers || [];
+          const aliveLaunchers = launchers.filter(l => !l.destroyed);
+          
+          if (aliveLaunchers.length === 0) {
+            this.onNotification('قبل از آماده شدن باید حداقل یک موشک‌انداز در زمین قرار دهید');
+            this.audioController.playSound('error');
+            logger.warn('Cannot ready - no launchers placed', {
+              playerId: this.gameState.playerId,
+              launchersCount: launchers.length
+            });
+            return;
+          }
+          
           this.sendReady();
         }
       })
