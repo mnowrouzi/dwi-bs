@@ -1,0 +1,17 @@
+{
+  "name": "dwi-bs",
+  "version": "0.0.0",
+  "description": "Multiplayer turn-based strategy game",
+  "scripts": {
+    "start": "./scripts/restart.sh",
+    "stop": "./scripts/stop.sh",
+    "server": "cd server && npm start",
+    "client": "cd client && npm run dev",
+    "bump-version": "node scripts/bump-version.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mnowrouzi/dwi-bs.git"
+  }
+}
+
