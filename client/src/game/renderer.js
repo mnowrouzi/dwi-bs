@@ -530,23 +530,31 @@ export class GameRenderer extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setStrokeStyle(2, 0xffd700)
       .on('pointerdown', () => {
-        if (this.currentPhase === GAME_PHASES.BUILD) {
+        if (this.currentPhase === GAME_PHASES.BUILD && !this.isReady) {
           this.sendReady();
         }
       })
       .on('pointerover', () => {
-        this.readyButton.setFillStyle(0x3a4a5a);
+        if (!this.isReady) {
+          this.readyButton.setFillStyle(0x3a4a5a);
+        }
       })
       .on('pointerout', () => {
-        this.readyButton.setFillStyle(0x2b3a42);
+        if (!this.isReady) {
+          this.readyButton.setFillStyle(0x2b3a42);
+        }
       });
     
-    this.add.text(this.readyButton.x, this.readyButton.y, faTexts.buttons.ready, {
+    this.readyButtonText = this.add.text(this.readyButton.x, this.readyButton.y, faTexts.buttons.ready, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
     }).setOrigin(0.5);
+    
+    // Initialize ready state
+    this.isReady = false;
+    this.buildPhaseTimer = null;
   }
 
   setupInput() {
@@ -630,9 +638,21 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   sendReady() {
+    if (this.isReady) return; // Already ready
+    
+    this.isReady = true;
     this.gameState.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.READY
     }));
+    
+    // Disable ready button
+    this.readyButton.setFillStyle(0x1a2a3a);
+    this.readyButton.setStrokeStyle(2, 0x666666);
+    this.readyButton.disableInteractive();
+    this.readyButtonText.setText(faTexts.notifications.waitingForOpponent);
+    this.readyButtonText.setColor('#999999');
+    
+    this.onNotification(faTexts.notifications.waitingForOpponent);
   }
 
   sendShotRequest() {
@@ -706,6 +726,47 @@ export class GameRenderer extends Phaser.Scene {
     if (this.budgetText && this.budget !== undefined) {
       this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
     }
+    
+    // Start 30-second timer for build phase
+    if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer) {
+      this.startBuildPhaseTimer();
+    }
+  }
+  
+  startBuildPhaseTimer() {
+    // Clear any existing timer
+    if (this.buildPhaseTimer) {
+      clearTimeout(this.buildPhaseTimer);
+    }
+    
+    // Start 30-second countdown
+    let timeLeft = 30;
+    const timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
+      fontSize: '16px',
+      color: '#ffd700',
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
+    }).setOrigin(0, 0);
+    
+    const countdown = setInterval(() => {
+      timeLeft--;
+      if (timeLeft > 0) {
+        timerText.setText(`زمان باقی‌مانده: ${timeLeft} ثانیه`);
+      } else {
+        clearInterval(countdown);
+        timerText.destroy();
+        // Auto-send ready if not already ready
+        if (!this.isReady) {
+          this.sendReady();
+        }
+        // Request battle phase start from server
+        this.gameState.ws.send(JSON.stringify({
+          type: MESSAGE_TYPES.READY_TO_START
+        }));
+      }
+    }, 1000);
+    
+    this.buildPhaseTimer = countdown;
   }
 
   handleBattleState(data) {

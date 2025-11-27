@@ -30,6 +30,8 @@
     "roomCreated": "اتاق ایجاد شد",
     "roomJoined": "به اتاق پیوستید",
     "waitingForPlayer": "در انتظار بازیکن دوم...",
+    "waitingForOpponent": "منتظر حریف...",
+    "opponentConnected": "حریف وصل شد",
     "bothReady": "هر دو بازیکن آماده هستند",
     "gameStarting": "بازی شروع می‌شود...",
     "shotRejected": "شلیک رد شد",

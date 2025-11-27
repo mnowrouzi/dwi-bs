@@ -33,6 +33,10 @@ export async function handleWebSocketConnection(ws, data) {
       handleReady(ws, data);
       break;
     
+    case MESSAGE_TYPES.READY_TO_START:
+      handleReadyToStart(ws, data);
+      break;
+    
     case MESSAGE_TYPES.REQUEST_SHOT:
       handleRequestShot(ws, data);
       break;
@@ -147,10 +151,37 @@ function handleReady(ws, data) {
   const playerId = playerToId.get(ws);
   gameManager.setPlayerReady(playerId);
   
+  // Notify all players about ready status
+  gameManager.broadcast({
+    type: MESSAGE_TYPES.ROOM_UPDATE,
+    roomId,
+    players: gameManager.getPlayerCount(),
+    readyPlayers: Array.from(gameManager.players.entries())
+      .filter(([_, player]) => player.ready)
+      .map(([id, _]) => id)
+  });
+  
   // Check if both ready, start battle
   if (gameManager.allPlayersReady()) {
     gameManager.startBattlePhase();
   }
+}
+
+function handleReadyToStart(ws, data) {
+  const roomId = playerToRoom.get(ws);
+  if (!roomId) return;
+  
+  const gameManager = rooms.get(roomId);
+  if (!gameManager) return;
+  
+  // Force start battle phase after 30 seconds
+  // Mark all players as ready
+  gameManager.players.forEach((player, playerId) => {
+    player.ready = true;
+  });
+  
+  // Start battle phase
+  gameManager.startBattlePhase();
 }
 
 function handleRequestShot(ws, data) {

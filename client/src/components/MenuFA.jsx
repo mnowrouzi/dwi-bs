@@ -85,8 +85,12 @@ export default function MenuFA({ onStartGame }) {
           onStartGame(data.roomId, 'player2', ws);
         } else if (data.type === MESSAGE_TYPES.ERROR) {
           logger.error('Join room error:', data.message);
-          alert(data.message || 'روم پیدا نشد');
+          const errorMsg = data.message === 'Room not found' 
+            ? 'اتاق پیدا نشد. لطفاً کد اتاق را بررسی کنید.' 
+            : (data.message || 'خطا در اتصال به اتاق');
+          alert(errorMsg);
           setIsJoining(false);
+          ws.close();
         }
       };
 

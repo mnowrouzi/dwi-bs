@@ -13,6 +13,7 @@ export const MESSAGE_TYPES = {
   CREATE_ROOM: 'createRoom',
   PLACE_UNITS: 'placeUnits',
   READY: 'ready',
+  READY_TO_START: 'readyToStart',
   REQUEST_SHOT: 'requestShot',
   
   // Server -> Client

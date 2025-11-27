@@ -72,7 +72,7 @@
       "cost": 4,
       "coverage": 3,
       "interceptChance": 0.85,
-      "size": [1, 1],
+      "size": [2, 2],
       "color": "#4488ff",
       "defenseSound": "assets/audio/defense_intercept.mp3"
     },
@@ -82,7 +82,7 @@
       "cost": 5,
       "coverage": 4,
       "interceptChance": 0.95,
-      "size": [1, 1],
+      "size": [3, 3],
       "color": "#2266ff",
       "defenseSound": "assets/audio/defense_intercept.mp3"
     }
