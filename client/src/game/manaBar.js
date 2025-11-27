@@ -25,12 +25,13 @@ export class ManaBar {
     );
     this.fill.setOrigin(0, 0.5);
     
-    // Text
-    this.text = this.scene.add.text(this.x, this.y - 25, 'مانا', {
+    // Text with proper margin
+    this.text = this.scene.add.text(this.x, this.y - 30, 'مانا', {
       fontSize: '16px',
       color: '#fff',
-      fontFamily: 'Vazirmatn, Tahoma'
-    });
+      fontFamily: 'Vazirmatn, Tahoma',
+      padding: { x: 10, y: 5 }
+    }).setDepth(100);
     
     this.valueText = this.scene.add.text(this.x + 110, this.y, `${this.currentMana}/${this.maxMana}`, {
       fontSize: '14px',
