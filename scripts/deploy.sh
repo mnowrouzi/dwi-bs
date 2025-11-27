@@ -29,25 +29,26 @@ if [ -z "$(git status --porcelain)" ]; then
     exit 0
 fi
 
-# Step 3: Add all changes
-echo -e "\n${YELLOW}📦 Step 3: Staging changes...${NC}"
+# Step 3: Smart restart BEFORE commit (so it can see the changes)
+# VERSION and version.js always change, so we need to restart both
+echo -e "\n${YELLOW}🔄 Step 3: Smart restarting (before commit)...${NC}"
+"$SCRIPT_DIR/smart-restart.sh"
+
+# Step 4: Add all changes
+echo -e "\n${YELLOW}📦 Step 4: Staging changes...${NC}"
 git add -A
 echo -e "${GREEN}✅ Changes staged${NC}"
 
-# Step 4: Commit
-echo -e "\n${YELLOW}💾 Step 4: Committing changes...${NC}"
+# Step 5: Commit
+echo -e "\n${YELLOW}💾 Step 5: Committing changes...${NC}"
 COMMIT_MSG="${2:-chore: bump version to ${NEW_VERSION}}"
 git commit -m "$COMMIT_MSG"
 echo -e "${GREEN}✅ Changes committed${NC}"
 
-# Step 5: Push to GitHub
-echo -e "\n${YELLOW}☁️  Step 5: Pushing to GitHub...${NC}"
+# Step 6: Push to GitHub
+echo -e "\n${YELLOW}☁️  Step 6: Pushing to GitHub...${NC}"
 git push origin main
 echo -e "${GREEN}✅ Changes pushed to GitHub${NC}"
-
-# Step 6: Smart restart (only what changed)
-echo -e "\n${YELLOW}🔄 Step 6: Smart restarting (only what changed)...${NC}"
-"$SCRIPT_DIR/smart-restart.sh"
 
 echo -e "\n${GREEN}✅ Deployment complete!${NC}"
 echo -e "${BLUE}📊 Version: ${NEW_VERSION}${NC}"
