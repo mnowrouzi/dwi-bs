@@ -1267,9 +1267,46 @@ export class GameRenderer extends Phaser.Scene {
         // Only truncate if we're actually going backward (not just passing through)
         const distanceFromLast = this.currentPathTiles.length - 1 - existingIndex;
         
-        // IMPORTANT: Never truncate to before the first tile (index 0)
-        // The first tile is adjacent to launcher and must always remain
+        // IMPORTANT: If truncating to index 0 (first tile), check if it's still adjacent to launcher
+        // If first tile is no longer adjacent to launcher (e.g., user dragged back too far),
+        // we should clear the path entirely and let user start fresh from a valid adjacent tile
         if (existingIndex === 0) {
+          // Check if first tile is still adjacent to launcher
+          const firstTile = this.currentPathTiles[0];
+          const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots?.type);
+          if (launcherConfig && this.selectedLauncherForShots) {
+            const [sizeX, sizeY] = launcherConfig.size;
+            const launcher = this.selectedLauncherForShots;
+            const isFirstTileAdjacentToLauncher = 
+              // Right side
+              (firstTile.x === launcher.x + sizeX && firstTile.y >= launcher.y && firstTile.y < launcher.y + sizeY) ||
+              // Left side
+              (firstTile.x === launcher.x - 1 && firstTile.y >= launcher.y && firstTile.y < launcher.y + sizeY) ||
+              // Bottom side
+              (firstTile.y === launcher.y + sizeY && firstTile.x >= launcher.x && firstTile.x < launcher.x + sizeX) ||
+              // Top side
+              (firstTile.y === launcher.y - 1 && firstTile.x >= launcher.x && firstTile.x < launcher.x + sizeX) ||
+              // Corners
+              (firstTile.x === launcher.x - 1 && firstTile.y === launcher.y - 1) ||
+              (firstTile.x === launcher.x + sizeX && firstTile.y === launcher.y - 1) ||
+              (firstTile.x === launcher.x - 1 && firstTile.y === launcher.y + sizeY) ||
+              (firstTile.x === launcher.x + sizeX && firstTile.y === launcher.y + sizeY);
+            
+            if (!isFirstTileAdjacentToLauncher) {
+              // First tile is no longer adjacent to launcher - clear path
+              logger.info('First tile no longer adjacent to launcher - clearing path', {
+                firstTile: { x: firstTile.x, y: firstTile.y, isPlayerGrid: firstTile.isPlayerGrid },
+                launcher: { x: launcher.x, y: launcher.y, sizeX, sizeY },
+                pathLength: this.currentPathTiles.length
+              });
+              this.currentPathTiles = [];
+              this.drawPathHighlight();
+              this.updateBarootDisplay();
+              return;
+            }
+          }
+          
+          // First tile is still valid - don't truncate, preserve it
           logger.info('Cannot truncate to before first tile (adjacent to launcher) - preserving first tile', {
             tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
             existingIndex,
