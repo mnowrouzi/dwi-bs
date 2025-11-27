@@ -2311,14 +2311,29 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleTurnTimerExpired() {
+    logger.info('Turn timer expired', {
+      currentTurn: this.currentTurn,
+      playerId: this.gameState.playerId,
+      hasValidPath: !!(this.currentPathTiles && this.currentPathTiles.length >= 2 && this.selectedLauncherForShots),
+      pathLength: this.currentPathTiles?.length || 0,
+      selectedLauncher: this.selectedLauncherForShots?.id
+    });
     this.stopBattleTurnTimer();
     
     // Check if there's a valid path ready to fire
     if (this.currentPathTiles && this.currentPathTiles.length >= 2 && this.selectedLauncherForShots) {
       // Auto-fire the current path
+      logger.info('Auto-firing due to timer expiry', {
+        pathLength: this.currentPathTiles.length,
+        launcherId: this.selectedLauncherForShots.id
+      });
       this.fireAllShots();
     } else {
       // No valid path - do nothing, no mana consumed
+      logger.info('Timer expired but no valid path - sending END_TURN', {
+        pathLength: this.currentPathTiles?.length || 0,
+        selectedLauncher: this.selectedLauncherForShots?.id
+      });
       // Clear any partial path
       this.currentPathTiles = [];
       this.selectedLauncherForShots = null;
