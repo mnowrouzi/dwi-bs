@@ -104,7 +104,6 @@ export default function MenuFA({ onStartGame }) {
     <div style={styles.container}>
       <div style={styles.menu}>
         <h1 style={styles.title}>{faTexts.menu.title}</h1>
-        <div style={styles.version}>نسخه: v{version}</div>
         
         <button
           style={styles.button}
@@ -131,6 +130,8 @@ export default function MenuFA({ onStartGame }) {
             {isJoining ? 'در حال اتصال...' : faTexts.menu.joinGame}
           </button>
         </div>
+        
+        <div style={styles.version}>نسخه: v{version}</div>
       </div>
     </div>
   );

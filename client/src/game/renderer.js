@@ -77,25 +77,33 @@ export class GameRenderer extends Phaser.Scene {
       this.config.launchers.forEach(launcher => {
         if (launcher.launcherSprite) {
           try {
-            this.load.image(`launcher_${launcher.id}`, launcher.launcherSprite);
-            logger.debug(`Loading launcher sprite: ${launcher.launcherSprite}`);
+            // Use absolute path from server
+            const spritePath = launcher.launcherSprite.startsWith('http') 
+              ? launcher.launcherSprite 
+              : `http://localhost:3000/${launcher.launcherSprite}`;
+            this.load.image(`launcher_${launcher.id}`, spritePath);
+            logger.info(`Loading launcher sprite: ${spritePath} for ${launcher.id}`);
           } catch (e) {
-            logger.warn(`Failed to load launcher sprite for ${launcher.id}: ${launcher.launcherSprite}`);
+            logger.warn(`Failed to load launcher sprite for ${launcher.id}: ${launcher.launcherSprite}`, e);
           }
         }
         // Load missile sprites from config
         if (launcher.missileSprite) {
           try {
-            this.load.image(`missile_${launcher.id}`, launcher.missileSprite);
-            logger.debug(`Loading missile sprite: ${launcher.missileSprite}`);
+            const spritePath = launcher.missileSprite.startsWith('http') 
+              ? launcher.missileSprite 
+              : `http://localhost:3000/${launcher.missileSprite}`;
+            this.load.image(`missile_${launcher.id}`, spritePath);
+            logger.info(`Loading missile sprite: ${spritePath} for ${launcher.id}`);
           } catch (e) {
-            logger.warn(`Failed to load missile sprite for ${launcher.id}: ${launcher.missileSprite}`);
+            logger.warn(`Failed to load missile sprite for ${launcher.id}: ${launcher.missileSprite}`, e);
           }
         }
       });
     }
     
-    // Create placeholder graphics (fallback if sprites not loaded)
+    // Create placeholder graphics (will be used if sprites fail to load)
+    // But only create if texture doesn't exist after load completes
     this.createPlaceholderGraphics();
     
     // Load sounds (if available) - errors won't break the game
@@ -160,23 +168,33 @@ export class GameRenderer extends Phaser.Scene {
 
   createPlaceholderGraphics() {
     // Create colored rectangles for units (textures only, not visible sprites)
-    const shortGraphics = this.add.graphics();
-    shortGraphics.fillStyle(0xffba00);
-    shortGraphics.fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
-    shortGraphics.generateTexture('launcher_short', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
-    shortGraphics.destroy(); // Remove graphics object, keep texture
-    
-    const mediumGraphics = this.add.graphics();
-    mediumGraphics.fillStyle(0xff6600);
-    mediumGraphics.fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
-    mediumGraphics.generateTexture('launcher_medium', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
-    mediumGraphics.destroy();
-    
-    const longGraphics = this.add.graphics();
-    longGraphics.fillStyle(0xff0000);
-    longGraphics.fillRect(0, 0, GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
-    longGraphics.generateTexture('launcher_long', GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
-    longGraphics.destroy();
+    // Use size from config instead of hardcoded values
+    // Only create if texture doesn't already exist (to avoid overriding loaded sprites)
+    if (this.config && this.config.launchers) {
+      this.config.launchers.forEach(launcher => {
+        const textureKey = `launcher_${launcher.id}`;
+        
+        // Only create placeholder if texture doesn't exist
+        // (will be created after load completes if sprite failed to load)
+        if (!this.textures.exists(textureKey)) {
+          const [sizeX, sizeY] = launcher.size || [1, 1];
+          const width = sizeX * GRID_TILE_SIZE;
+          const height = sizeY * GRID_TILE_SIZE;
+          
+          const graphics = this.add.graphics();
+          graphics.fillStyle(Phaser.Display.Color.HexStringToColor(launcher.color || '#ffba00').color);
+          graphics.fillRect(0, 0, width, height);
+          graphics.lineStyle(2, 0xffffff, 0.5);
+          graphics.strokeRect(0, 0, width, height);
+          graphics.generateTexture(textureKey, width, height);
+          graphics.destroy();
+          
+          logger.debug(`Created placeholder for ${textureKey} with size [${sizeX}, ${sizeY}]`);
+        } else {
+          logger.debug(`Texture ${textureKey} already exists, skipping placeholder`);
+        }
+      });
+    }
     
     // Defense units (with size support)
     if (this.config && this.config.defenses) {
@@ -340,6 +358,13 @@ export class GameRenderer extends Phaser.Scene {
     
     this.launcherButtons = [];
     this.config.launchers.forEach((launcher, index) => {
+      // Log launcher config to debug
+      logger.info(`Setting up launcher button: ${launcher.id}`, { 
+        cost: launcher.cost, 
+        size: launcher.size,
+        titleFA: launcher.titleFA 
+      });
+      
       const btnX = panelX + (index % 2) * buttonSpacing;
       const btnY = panelY + 20 + Math.floor(index / 2) * (buttonHeight + 15); // Space from label
       
@@ -355,7 +380,7 @@ export class GameRenderer extends Phaser.Scene {
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectLauncherType(launcher.id);
-          logger.info('Launcher selected for placement:', launcher.id);
+          logger.info('Launcher selected for placement:', launcher.id, { cost: launcher.cost });
           this.onNotification(`موشک‌انداز ${launcher.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         } else if (this.currentPhase === GAME_PHASES.BATTLE) {
           this.selectLauncherForShot(launcher.id);
@@ -376,6 +401,7 @@ export class GameRenderer extends Phaser.Scene {
         align: 'center'
       }).setOrigin(0.5).setDepth(60); // Above button but below label
       
+      // Use cost from config (launcher.cost)
       this.add.text(btnX, btnY + 20, `💰${launcher.cost}`, {
         fontSize: '13px',
         color: '#ffd700',
