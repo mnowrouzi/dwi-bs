@@ -191,14 +191,34 @@ export class GameManager {
     });
 
     logger.room(this.roomId, `Turn: ${this.currentTurn}`);
-    this.broadcast({
-      type: MESSAGE_TYPES.BATTLE_STATE,
-      phase: GAME_PHASES.BATTLE,
-      currentTurn: this.currentTurn,
-      mana: {
-        player1: this.players.get('player1').mana,
-        player2: this.players.get('player2').mana
-      }
+    
+    // Send battle state to each player with their own units
+    this.players.forEach((player, playerId) => {
+      player.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.BATTLE_STATE,
+        phase: GAME_PHASES.BATTLE,
+        currentTurn: this.currentTurn,
+        mana: {
+          player1: this.players.get('player1').mana,
+          player2: this.players.get('player2').mana
+        },
+        units: {
+          launchers: player.units.launchers.map(l => ({
+            id: l.id,
+            type: l.type,
+            x: l.x,
+            y: l.y,
+            destroyed: l.destroyed
+          })),
+          defenses: player.units.defenses.map(d => ({
+            id: d.id,
+            type: d.type,
+            x: d.x,
+            y: d.y,
+            destroyed: d.destroyed
+          }))
+        }
+      }));
     });
   }
 

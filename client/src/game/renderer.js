@@ -1250,6 +1250,12 @@ export class GameRenderer extends Phaser.Scene {
     this.manaBar.updateMana(this.mana);
     this.updateTurnIndicator();
     
+    // Update units from server (they should persist from build phase)
+    if (data.units) {
+      this.playerUnits = data.units;
+      this.renderUnits(); // Render units in battle phase
+    }
+    
     // Hide unit panel buttons in battle phase
     this.hideUnitPanelInBattle();
     
