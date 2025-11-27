@@ -584,11 +584,6 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleBattleClick(pointer) {
-    if (!this.selectedLauncher) {
-      this.onNotification('لطفاً ابتدا موشک‌انداز را انتخاب کنید');
-      return;
-    }
-    
     // Check if click is on UI buttons (right side)
     if (pointer.x > 950) {
       return;
@@ -598,6 +593,7 @@ export class GameRenderer extends Phaser.Scene {
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
+    // Check if click is on a launcher (for selecting)
     let gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
     let gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
     let isPlayerGrid = true;
@@ -610,24 +606,80 @@ export class GameRenderer extends Phaser.Scene {
       isPlayerGrid = false;
     }
     
-    if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize) {
-      this.isDrawingPath = true;
-      this.pathTiles = [{ x: gridX, y: gridY, isPlayerGrid }];
-      this.pathDrawer.startPath(this.pathTiles);
+    if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize && isPlayerGrid) {
+      // Check if clicked on a launcher
+      const clickedLauncher = this.playerUnits.launchers.find(l => {
+        if (l.destroyed) return false;
+        const config = this.config.launchers.find(c => c.id === l.type);
+        if (!config) return false;
+        const [sizeX, sizeY] = config.size;
+        return gridX >= l.x && gridX < l.x + sizeX &&
+               gridY >= l.y && gridY < l.y + sizeY;
+      });
+      
+      if (clickedLauncher) {
+        // Select launcher and check mana
+        const launcherConfig = this.config.launchers.find(c => c.id === clickedLauncher.type);
+        if (launcherConfig && this.mana >= launcherConfig.manaCost) {
+          this.selectedLauncher = clickedLauncher;
+          this.onNotification(`موشک‌انداز ${launcherConfig.titleFA} انتخاب شد. مسیر را با drag کردن مشخص کنید.`);
+          // Start path from launcher center position
+          const launcherCenterX = clickedLauncher.x + Math.floor(launcherConfig.size[0] / 2);
+          const launcherCenterY = clickedLauncher.y + Math.floor(launcherConfig.size[1] / 2);
+          this.pathDrawer.startPath({ x: launcherCenterX, y: launcherCenterY, isPlayerGrid: true });
+          this.isDrawingPath = true;
+          return;
+        } else if (launcherConfig && this.mana < launcherConfig.manaCost) {
+          this.onNotification(`مانا کافی نیست. نیاز به ${launcherConfig.manaCost} مانا دارید.`);
+          return;
+        }
+      }
+    }
+    
+    // If we have a selected launcher and are drawing path, continue drawing
+    if (this.selectedLauncher && this.isDrawingPath) {
+      // Path drawing continues on pointer move
+      return;
+    }
+    
+    // If no launcher selected, show message
+    if (!this.selectedLauncher) {
+      this.onNotification('لطفاً ابتدا روی موشک‌انداز کلیک کنید');
     }
   }
 
   finishPathDrawing() {
     this.isDrawingPath = false;
     
-    if (this.pathTiles.length < 2) {
+    if (!this.selectedLauncher) {
+      this.pathDrawer.clear();
       this.pathTiles = [];
+      return;
+    }
+    
+    if (this.pathTiles.length < 2) {
+      this.onNotification('مسیر باید حداقل 2 خانه باشد');
+      this.pathDrawer.clear();
+      this.pathTiles = [];
+      this.selectedLauncher = null;
+      return;
+    }
+    
+    // Validate mana again before sending
+    const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncher.type);
+    if (launcherConfig && this.mana < launcherConfig.manaCost) {
+      this.onNotification(`مانا کافی نیست. نیاز به ${launcherConfig.manaCost} مانا دارید.`);
+      this.pathDrawer.clear();
+      this.pathTiles = [];
+      this.selectedLauncher = null;
       return;
     }
     
     // Send shot request
     this.sendShotRequest();
     this.pathTiles = [];
+    this.selectedLauncher = null;
+    this.pathDrawer.clear();
   }
 
   selectLauncherForShot(launcherType) {
