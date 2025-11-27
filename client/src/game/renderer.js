@@ -890,6 +890,9 @@ export class GameRenderer extends Phaser.Scene {
               this.pathHighlightGraphics.setDepth(40);
             }
             
+            // Draw highlight around selected launcher
+            this.drawLauncherHighlight(clickedLauncher, launcherConfig);
+            
             // Show and update baroot amount based on launcher
             this.updateBarootDisplay(launcherConfig.manaCost);
             
@@ -1080,6 +1083,55 @@ export class GameRenderer extends Phaser.Scene {
           lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid }
         });
       }
+    }
+  }
+  
+  drawLauncherHighlight(launcher, launcherConfig) {
+    // Clear previous highlight
+    if (this.launcherHighlightGraphics) {
+      this.launcherHighlightGraphics.destroy();
+    }
+    
+    // Create new graphics for launcher highlight
+    this.launcherHighlightGraphics = this.add.graphics();
+    this.launcherHighlightGraphics.setDepth(50); // Above units but below path
+    
+    const [sizeX, sizeY] = launcherConfig.size;
+    const startX = GRID_OFFSET_X + launcher.x * GRID_TILE_SIZE;
+    const startY = GRID_OFFSET_Y + launcher.y * GRID_TILE_SIZE;
+    const width = sizeX * GRID_TILE_SIZE;
+    const height = sizeY * GRID_TILE_SIZE;
+    
+    // Draw border around launcher (thick, animated color)
+    this.launcherHighlightGraphics.lineStyle(4, 0x00ff00, 1.0); // Green, thick line
+    this.launcherHighlightGraphics.strokeRect(startX, startY, width, height);
+    
+    // Draw corner markers for better visibility
+    const cornerSize = 8;
+    this.launcherHighlightGraphics.fillStyle(0x00ff00, 1.0);
+    
+    // Top-left corner
+    this.launcherHighlightGraphics.fillRect(startX - 2, startY - 2, cornerSize, cornerSize);
+    // Top-right corner
+    this.launcherHighlightGraphics.fillRect(startX + width - cornerSize + 2, startY - 2, cornerSize, cornerSize);
+    // Bottom-left corner
+    this.launcherHighlightGraphics.fillRect(startX - 2, startY + height - cornerSize + 2, cornerSize, cornerSize);
+    // Bottom-right corner
+    this.launcherHighlightGraphics.fillRect(startX + width - cornerSize + 2, startY + height - cornerSize + 2, cornerSize, cornerSize);
+    
+    logger.info('Launcher highlight drawn', {
+      launcherId: launcher.id,
+      position: { x: launcher.x, y: launcher.y },
+      size: { sizeX, sizeY },
+      screenPosition: { startX, startY },
+      dimensions: { width, height }
+    });
+  }
+  
+  clearLauncherHighlight() {
+    if (this.launcherHighlightGraphics) {
+      this.launcherHighlightGraphics.destroy();
+      this.launcherHighlightGraphics = null;
     }
   }
   
@@ -1680,6 +1732,8 @@ export class GameRenderer extends Phaser.Scene {
       if (this.pathHighlightGraphics) {
         this.pathHighlightGraphics.clear();
       }
+      // Clear launcher highlight
+      this.clearLauncherHighlight();
       // Disable FIRE button (keep visible but disabled)
       if (this.fireButton) {
         this.fireButton.setAlpha(0.5);
