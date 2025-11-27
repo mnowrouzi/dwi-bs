@@ -14,10 +14,15 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   init(data) {
+    if (!data || !data.config) {
+      logger.error('GameRenderer.init: config is missing!', data);
+      return;
+    }
+    
     this.config = data.config;
     this.gameState = data.gameState;
-    this.onNotification = data.onNotification;
-    this.onPhaseChange = data.onPhaseChange;
+    this.onNotification = data.onNotification || (() => {});
+    this.onPhaseChange = data.onPhaseChange || (() => {});
     
     this.gridSize = this.config.gridSize;
     this.playerUnits = { launchers: [], defenses: [] };
@@ -30,15 +35,23 @@ export class GameRenderer extends Phaser.Scene {
     this.selectedLauncher = null;
     this.pathTiles = [];
     this.isDrawingPath = false;
+    
+    logger.info('GameRenderer initialized', { gridSize: this.gridSize, budget: this.budget });
   }
 
   preload() {
+    // Check if config is available
+    if (!this.config) {
+      logger.error('GameRenderer.preload: config is not available yet!');
+      return;
+    }
+    
     // Create placeholder graphics
     this.createPlaceholderGraphics();
     
     // Load sounds (if available) - errors won't break the game
     try {
-      this.audioController = new AudioController(this, this.config.sounds);
+      this.audioController = new AudioController(this, this.config.sounds || {});
     } catch (e) {
       logger.warn('Audio controller initialization failed, continuing without sound:', e.message);
       // Create a minimal audio controller that does nothing
@@ -54,6 +67,17 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   create() {
+    // Check if config is available
+    if (!this.config || !this.gridSize) {
+      logger.error('GameRenderer.create: config or gridSize is not available!', {
+        hasConfig: !!this.config,
+        gridSize: this.gridSize
+      });
+      return;
+    }
+    
+    logger.info('GameRenderer.create: Setting up game...', { gridSize: this.gridSize });
+    
     // Setup grid
     this.setupGrid();
     
@@ -73,6 +97,8 @@ export class GameRenderer extends Phaser.Scene {
     // Start build phase
     this.currentPhase = GAME_PHASES.BUILD;
     this.onPhaseChange(this.currentPhase);
+    
+    logger.info('GameRenderer.create: Game setup complete');
   }
 
   createPlaceholderGraphics() {
@@ -93,18 +119,20 @@ export class GameRenderer extends Phaser.Scene {
       .generateTexture('launcher_long', GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
     
     // Defense units (with size support)
-    this.config.defenses.forEach(defense => {
-      const [sizeX, sizeY] = defense.size || [1, 1];
-      const width = sizeX * GRID_TILE_SIZE;
-      const height = sizeY * GRID_TILE_SIZE;
-      
-      this.add.graphics()
-        .fillStyle(Phaser.Display.Color.HexStringToColor(defense.color).color)
-        .fillRect(0, 0, width, height)
-        .lineStyle(2, 0xffffff, 0.5)
-        .strokeRect(0, 0, width, height)
-        .generateTexture(`defense_${defense.id}`, width, height);
-    });
+    if (this.config && this.config.defenses) {
+      this.config.defenses.forEach(defense => {
+        const [sizeX, sizeY] = defense.size || [1, 1];
+        const width = sizeX * GRID_TILE_SIZE;
+        const height = sizeY * GRID_TILE_SIZE;
+        
+        this.add.graphics()
+          .fillStyle(Phaser.Display.Color.HexStringToColor(defense.color || '#66ccff').color)
+          .fillRect(0, 0, width, height)
+          .lineStyle(2, 0xffffff, 0.5)
+          .strokeRect(0, 0, width, height)
+          .generateTexture(`defense_${defense.id}`, width, height);
+      });
+    }
     
     // Missile
     this.add.graphics()

@@ -18,7 +18,7 @@
       "size": [1, 2],
       "color": "#ffba00",
       "missileSprite": "assets/sprites/missile_short.png",
-      "launchSound": "assets/audio/launch_short.mp3",
+      "launchSound": "assets/audio/launch_short.wav",
       "impactSound": "assets/audio/explosion.mp3",
       "trailColor": "#ffaa00"
     },
@@ -32,7 +32,7 @@
       "size": [1, 2],
       "color": "#ff6600",
       "missileSprite": "assets/sprites/missile_medium.png",
-      "launchSound": "assets/audio/launch_medium.mp3",
+      "launchSound": "assets/audio/launch_medium.wav",
       "impactSound": "assets/audio/explosion.mp3",
       "trailColor": "#ff5500"
     },
@@ -46,8 +46,8 @@
       "size": [2, 2],
       "color": "#ff0000",
       "missileSprite": "assets/sprites/missile_long.png",
-      "launchSound": "assets/audio/launch_long.mp3",
-      "impactSound": "assets/audio/explosion_large.mp3",
+      "launchSound": "assets/audio/launch_long.wav",
+      "impactSound": "assets/audio/explosion_large.wav",
       "trailColor": "#cc0000"
     }
   ],
@@ -68,7 +68,7 @@
       "coverage": 3,
       "interceptChance": 0.85,
       "color": "#4488ff",
-      "defenseSound": "assets/audio/defense_intercept.mp3"
+      "defenseSound": "assets/audio/defense_intercept.wav"
     },
     {
       "id": "longDef",
