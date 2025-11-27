@@ -307,18 +307,20 @@ export class GameRenderer extends Phaser.Scene {
     separatorGraphics.lineTo(offsetX + (this.gridSize * tileSize), offsetY + (this.gridSize * tileSize));
     separatorGraphics.setDepth(10);
     
-    // Grid labels
-    this.add.text(offsetX + (this.gridSize * tileSize) / 2, offsetY - 30, faTexts.game.playerField, {
+    // Grid labels with proper margin
+    this.add.text(offsetX + (this.gridSize * tileSize) / 2, offsetY - 50, faTexts.game.playerField, {
       fontSize: '20px',
       color: '#ffd700',
-      fontFamily: 'Vazirmatn, Tahoma'
-    }).setOrigin(0.5);
+      fontFamily: 'Vazirmatn, Tahoma',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setDepth(100);
     
-    this.add.text(opponentOffsetX + (this.gridSize * tileSize) / 2, offsetY - 30, faTexts.game.opponentField, {
+    this.add.text(opponentOffsetX + (this.gridSize * tileSize) / 2, offsetY - 50, faTexts.game.opponentField, {
       fontSize: '20px',
       color: '#ffd700',
-      fontFamily: 'Vazirmatn, Tahoma'
-    }).setOrigin(0.5);
+      fontFamily: 'Vazirmatn, Tahoma',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setDepth(100);
   }
 
   drawGrid(graphics, x, y, size, tileSize, color) {
@@ -400,12 +402,13 @@ export class GameRenderer extends Phaser.Scene {
     const buttonWidth = 80;
     const buttonHeight = 70;
     
-    // Launchers section
-    const launcherLabel = this.add.text(panelX, panelY - 30, faTexts.units.launcher, {
+    // Launchers section with proper margin
+    const launcherLabel = this.add.text(panelX, panelY - 50, faTexts.units.launcher, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      padding: { x: 10, y: 5 }
     }).setOrigin(0, 0).setDepth(100); // Higher depth to appear above buttons
     
     this.launcherButtons = [];
@@ -468,14 +471,15 @@ export class GameRenderer extends Phaser.Scene {
       this.launcherButtons.push(btn);
     });
     
-    // Defenses section (positioned below launchers)
+    // Defenses section (positioned below launchers) with proper margin
     const defensesStartY = panelY + 20 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 50;
     
-    const defenseLabel = this.add.text(panelX, defensesStartY - 30, faTexts.units.defense, {
+    const defenseLabel = this.add.text(panelX, defensesStartY - 50, faTexts.units.defense, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      padding: { x: 10, y: 5 }
     }).setOrigin(0, 0).setDepth(100); // Higher depth to appear above buttons
     
     this.defenseButtons = [];
@@ -710,12 +714,22 @@ export class GameRenderer extends Phaser.Scene {
   
   handleRoomUpdate(data) {
     // Check if opponent connected
-    if (data.players === 2 && this.currentPhase === GAME_PHASES.BUILD) {
-      this.onNotification(faTexts.notifications.opponentConnected);
+    if (data.players === 2) {
+      if (this.currentPhase === GAME_PHASES.BUILD || this.currentPhase === GAME_PHASES.WAITING) {
+        this.onNotification(faTexts.notifications.opponentConnected);
+        // If we're in waiting phase, the server should start build phase
+        // But if we're already in build phase, we just show the notification
+      }
     }
   }
 
   handleBuildPhaseState(data) {
+    // Set phase to BUILD if not already
+    if (this.currentPhase !== GAME_PHASES.BUILD) {
+      this.currentPhase = GAME_PHASES.BUILD;
+      this.onPhaseChange(this.currentPhase);
+    }
+    
     // Update budget from server (which uses config)
     if (data.buildBudget !== undefined) {
       this.buildBudget = data.buildBudget;
@@ -723,7 +737,7 @@ export class GameRenderer extends Phaser.Scene {
         this.budgetText.setText(`بودجه ساخت: ${this.buildBudget}`);
         // Update position if needed
         this.budgetText.setX(GRID_OFFSET_X);
-        this.budgetText.setY(GRID_OFFSET_Y - 35);
+        this.budgetText.setY(GRID_OFFSET_Y - 60);
       }
       logger.info('Build budget updated from server', { buildBudget: this.buildBudget, serverBudget: data.buildBudget });
     }

@@ -185,6 +185,11 @@ export default function GameScene({ gameState, onBackToMenu }) {
         <button style={styles.backButton} onClick={onBackToMenu}>
           {faTexts.buttons.back}
         </button>
+        {gameState.roomId && (
+          <div style={styles.roomCode}>
+            کد اتاق: <strong style={{fontFamily: 'monospace', fontSize: '1.2em'}}>{gameState.roomId}</strong>
+          </div>
+        )}
         <div style={styles.phaseIndicator}>
           {currentPhase === GAME_PHASES.BUILD && faTexts.game.buildPhase}
           {currentPhase === GAME_PHASES.BATTLE && faTexts.game.battlePhase}
@@ -220,6 +225,16 @@ const styles = {
     display: 'flex',
     gap: '1rem',
     alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  roomCode: {
+    padding: '0.5rem 1rem',
+    background: 'rgba(43, 58, 66, 0.9)',
+    color: '#ffd700',
+    borderRadius: '5px',
+    fontFamily: 'Vazirmatn, Tahoma',
+    fontSize: '0.9rem',
+    border: '1px solid #ffd700',
   },
   backButton: {
     padding: '0.5rem 1rem',
