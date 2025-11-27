@@ -1973,6 +1973,11 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Send the shot
+    logger.info('Sending shot request to server', {
+      launcherId: this.selectedLauncherForShots.id,
+      pathLength: this.currentPathTiles.length,
+      pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
+    });
     this.gameState.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.REQUEST_SHOT,
       launcherId: this.selectedLauncherForShots.id,
@@ -2051,6 +2056,12 @@ export class GameRenderer extends Phaser.Scene {
         break;
       
       case MESSAGE_TYPES.TURN_CHANGE:
+        logger.info('TURN_CHANGE received from server', {
+          currentTurn: data.currentTurn,
+          playerId: this.gameState.playerId,
+          isMyTurn: data.currentTurn === this.gameState.playerId,
+          mana: data.mana
+        });
         this.currentTurn = data.currentTurn;
         this.mana = data.mana[this.gameState.playerId];
         this.shotsThisTurn = 0;
