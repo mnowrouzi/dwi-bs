@@ -1180,7 +1180,9 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    this.isDrawingPath = false;
+    // Don't disable drawing path on pointer up - keep it enabled for continuous drawing
+    // Only disable when explicitly resetting (e.g., after firing or turn change)
+    // this.isDrawingPath = false; // REMOVED - keep drawing enabled
     
     // Update baroot display based on final path
     this.updateBarootDisplay();
