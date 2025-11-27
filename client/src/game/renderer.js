@@ -423,14 +423,38 @@ export class GameRenderer extends Phaser.Scene {
       .setDepth(100)
       .setVisible(false) // Hidden by default, shown only in aiming mode
       .on('pointerdown', () => {
+        logger.info('FIRE button clicked', {
+          currentPhase: this.currentPhase,
+          currentTurn: this.currentTurn,
+          playerId: this.gameState.playerId,
+          aimingMode: this.aimingMode,
+          pathLength: this.currentPathTiles?.length || 0,
+          selectedLauncher: this.selectedLauncherForShots?.id
+        });
+        
         if (this.currentPhase === GAME_PHASES.BATTLE && 
             this.currentTurn === this.gameState.playerId) {
           // If not in aiming mode or path is empty, do nothing
           if (!this.aimingMode || !this.currentPathTiles || this.currentPathTiles.length < 2) {
+            logger.warn('FIRE button: Cannot fire - conditions not met', {
+              aimingMode: this.aimingMode,
+              pathLength: this.currentPathTiles?.length || 0,
+              selectedLauncher: this.selectedLauncherForShots?.id
+            });
             return;
           }
           // If path is valid, execute shot
+          logger.info('FIRE button: Calling fireAllShots', {
+            pathLength: this.currentPathTiles.length,
+            launcherId: this.selectedLauncherForShots.id
+          });
           this.fireAllShots();
+        } else {
+          logger.warn('FIRE button: Not in battle phase or not player\'s turn', {
+            currentPhase: this.currentPhase,
+            currentTurn: this.currentTurn,
+            playerId: this.gameState.playerId
+          });
         }
       })
       .on('pointerover', () => {
