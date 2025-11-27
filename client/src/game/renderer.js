@@ -1256,7 +1256,9 @@ export class GameRenderer extends Phaser.Scene {
         lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
         isAdj,
         withinRange,
-        existingIndex
+        existingIndex,
+        currentPathLength: this.currentPathTiles.length,
+        maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0
       });
       
       if (isAdj && withinRange && existingIndex === -1) {
@@ -1267,13 +1269,17 @@ export class GameRenderer extends Phaser.Scene {
         logger.info('Tile added to path', { 
           newTile: { gridX, gridY, isPlayerGrid },
           pathLength: this.currentPathTiles.length,
+          maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0,
           fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
         });
       } else {
         logger.info('Tile not added', {
           reason: !isAdj ? 'not adjacent' : !withinRange ? 'outside range' : 'already exists',
           newTile: { gridX, gridY, isPlayerGrid },
-          lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid }
+          lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+          currentPathLength: this.currentPathTiles.length,
+          pathLengthAfterAdd: this.currentPathTiles.length + 1,
+          maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0
         });
       }
     }
