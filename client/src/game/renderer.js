@@ -772,14 +772,44 @@ export class GameRenderer extends Phaser.Scene {
     
     // If no launcher selected, check if clicking on a launcher
     if (!this.selectedLauncherForShots) {
-      if (isPlayerGrid) {
+      logger.info('Checking for launcher click', {
+        isPlayerGrid,
+        gridX,
+        gridY,
+        launchersCount: this.playerUnits?.launchers?.length || 0,
+        launchers: this.playerUnits?.launchers?.map(l => ({
+          id: l.id,
+          type: l.type,
+          x: l.x,
+          y: l.y,
+          destroyed: l.destroyed
+        })) || []
+      });
+      
+      if (isPlayerGrid && this.playerUnits && this.playerUnits.launchers) {
         const clickedLauncher = this.playerUnits.launchers.find(l => {
-          if (l.destroyed) return false;
+          if (l.destroyed) {
+            logger.info('Launcher destroyed, skipping', { launcherId: l.id });
+            return false;
+          }
           const config = this.config.launchers.find(c => c.id === l.type);
-          if (!config) return false;
+          if (!config) {
+            logger.info('Launcher config not found', { launcherType: l.type });
+            return false;
+          }
           const [sizeX, sizeY] = config.size;
-          return gridX >= l.x && gridX < l.x + sizeX &&
+          const isOnLauncher = gridX >= l.x && gridX < l.x + sizeX &&
                  gridY >= l.y && gridY < l.y + sizeY;
+          
+          logger.info('Checking launcher bounds', {
+            launcherId: l.id,
+            launcherPos: { x: l.x, y: l.y },
+            launcherSize: { sizeX, sizeY },
+            clickPos: { gridX, gridY },
+            isOnLauncher
+          });
+          
+          return isOnLauncher;
         });
         
         if (clickedLauncher) {
