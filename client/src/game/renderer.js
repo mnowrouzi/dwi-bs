@@ -1149,14 +1149,31 @@ export class GameRenderer extends Phaser.Scene {
     
     const newTile = { x: gridX, y: gridY, isPlayerGrid };
     
-    // Check if new tile is inside launcher area - if so, skip it
+    // Check if new tile is inside launcher area
     if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
-      logger.info('Tile inside launcher area, skipping', {
-        tile: { x: gridX, y: gridY },
-        launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y },
-        currentPathLength: this.currentPathTiles?.length || 0
-      });
-      return;
+      // If path exists and user drags into launcher area, clear the path
+      // Shooting always starts from a tile adjacent to launcher, not from inside launcher
+      if (this.currentPathTiles && this.currentPathTiles.length > 0) {
+        logger.info('Dragging into launcher area - clearing path (path must start from outside launcher)', {
+          tile: { x: gridX, y: gridY },
+          launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y },
+          currentPathLength: this.currentPathTiles.length,
+          clearedPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+        });
+        // Clear the path - user must start from a tile adjacent to launcher
+        this.currentPathTiles = [];
+        this.drawPathHighlight();
+        this.updateBarootDisplay();
+        this.clearLauncherHighlight(); // Clear highlight to indicate path is reset
+        return;
+      } else {
+        // Path is empty, just skip - cannot start path from inside launcher
+        logger.info('Tile inside launcher area, cannot start path from here', {
+          tile: { x: gridX, y: gridY },
+          launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
+        });
+        return;
+      }
     }
     
     logger.info('🔍 Processing tile (not in launcher area)', {
@@ -1230,22 +1247,6 @@ export class GameRenderer extends Phaser.Scene {
     const existingIndex = this.currentPathTiles.findIndex(t => 
       t.x === newTile.x && t.y === newTile.y && t.isPlayerGrid === newTile.isPlayerGrid
     );
-    
-    // Special case: If dragging back to launcher area, don't truncate path
-    // The first tile (adjacent to launcher) must always remain
-    if (existingIndex < 0 && this.selectedLauncherForShots && 
-        this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
-      logger.info('Dragging back to launcher area - preserving path (first tile must remain)', {
-        tile: { x: gridX, y: gridY },
-        currentPathLength: this.currentPathTiles.length,
-        firstTile: this.currentPathTiles.length > 0 ? { 
-          x: this.currentPathTiles[0].x, 
-          y: this.currentPathTiles[0].y, 
-          isPlayerGrid: this.currentPathTiles[0].isPlayerGrid 
-        } : null
-      });
-      return; // Don't process, preserve the path
-    }
     
     // Only process backward drag if tile is actually in path AND we're going backward
     // Don't truncate if we're just hovering or if tile is adjacent and new
