@@ -1210,10 +1210,12 @@ export class GameRenderer extends Phaser.Scene {
       let isAdj = false;
       
       if (newTile.isPlayerGrid === lastTile.isPlayerGrid) {
-        // Same grid: check normal adjacency
-        isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
-                Math.abs(newTile.y - lastTile.y) <= 1 &&
-                !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+        // Same grid: check normal adjacency (horizontal, vertical, or diagonal)
+        const dx = Math.abs(newTile.x - lastTile.x);
+        const dy = Math.abs(newTile.y - lastTile.y);
+        isAdj = (dx === 1 && dy === 0) ||  // Horizontal
+                (dx === 0 && dy === 1) ||   // Vertical
+                (dx === 1 && dy === 1);     // Diagonal
       } else {
         // Different grids: tiles are adjacent if they are at the boundary between grids
         // The grids are side by side, so tiles at the right edge of player grid (x=gridSize-1)
