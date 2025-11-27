@@ -1330,20 +1330,37 @@ export class GameRenderer extends Phaser.Scene {
         this.currentPathTiles.push(newTile);
         this.drawPathHighlight();
         this.updateBarootDisplay();
-        logger.info('Tile added to path', { 
+        const finalPathLength = this.currentPathTiles.length;
+        logger.info('✅ Tile added to path', { 
           newTile: { gridX, gridY, isPlayerGrid },
-          pathLength: this.currentPathTiles.length,
+          pathLength: finalPathLength,
           maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0,
-          fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+          canAddMore: finalPathLength < (this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0),
+          fullPath: this.currentPathTiles.map((t, idx) => ({ 
+            index: idx + 1, 
+            x: t.x, 
+            y: t.y, 
+            isPlayerGrid: t.isPlayerGrid 
+          }))
         });
       } else {
-        logger.info('Tile not added', {
-          reason: !isAdj ? 'not adjacent' : !withinRange ? 'outside range' : 'already exists',
+        const reason = !isAdj ? 'not adjacent' : !withinRange ? 'outside range' : existingIndex !== -1 ? 'already exists' : 'unknown';
+        logger.warn('❌ Tile NOT added to path', {
+          reason,
           newTile: { gridX, gridY, isPlayerGrid },
           lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
           currentPathLength: this.currentPathTiles.length,
           pathLengthAfterAdd: this.currentPathTiles.length + 1,
-          maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0
+          maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0,
+          isAdj,
+          withinRange,
+          existingIndex,
+          details: {
+            isAdjCheck: isAdj,
+            withinRangeCheck: withinRange,
+            existingIndexCheck: existingIndex === -1,
+            allConditionsMet: isAdj && withinRange && existingIndex === -1
+          }
         });
       }
     }
