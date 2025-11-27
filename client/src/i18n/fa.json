@@ -1,0 +1,53 @@
+{
+  "menu": {
+    "title": "بازی استراتژیک نوبتی",
+    "createGame": "ایجاد بازی",
+    "joinGame": "ورود به بازی",
+    "settings": "تنظیمات",
+    "exit": "خروج"
+  },
+  "game": {
+    "buildPhase": "فاز ساخت",
+    "battlePhase": "فاز نبرد",
+    "yourTurn": "نوبت شما",
+    "opponentTurn": "نوبت حریف",
+    "placeUnits": "واحدها را قرار دهید",
+    "selectLauncher": "موشک انداز را انتخاب کنید",
+    "drawPath": "مسیر را رسم کنید",
+    "ready": "آماده",
+    "mana": "مانا",
+    "budget": "بودجه",
+    "shots": "شلیک‌ها",
+    "turn": "نوبت"
+  },
+  "units": {
+    "launcher": "موشک انداز",
+    "defense": "پدافند"
+  },
+  "notifications": {
+    "roomCreated": "اتاق ایجاد شد",
+    "roomJoined": "به اتاق پیوستید",
+    "waitingForPlayer": "در انتظار بازیکن دوم...",
+    "bothReady": "هر دو بازیکن آماده هستند",
+    "gameStarting": "بازی شروع می‌شود...",
+    "shotRejected": "شلیک رد شد",
+    "missileIntercepted": "موشک رهگیری شد",
+    "unitDestroyed": "واحد نابود شد",
+    "youWon": "شما برنده شدید!",
+    "youLost": "شما باختید!",
+    "insufficientMana": "مانا کافی نیست",
+    "maxShotsReached": "حداکثر شلیک در این نوبت",
+    "invalidPath": "مسیر نامعتبر"
+  },
+  "buttons": {
+    "confirm": "تأیید",
+    "cancel": "لغو",
+    "back": "بازگشت",
+    "start": "شروع",
+    "ready": "آماده",
+    "fire": "شلیک"
+  }
+}
+
+
+
