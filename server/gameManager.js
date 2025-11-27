@@ -195,10 +195,27 @@ export class GameManager {
     // Check if all players have at least one launcher before starting battle
     if (!this.allPlayersHaveLaunchers()) {
       logger.room(this.roomId, 'Cannot start battle phase - not all players have launchers');
+      
+      // Reset ready state so players can add launchers and try again
+      this.players.forEach((player, playerId) => {
+        player.ready = false;
+        logger.room(this.roomId, `Reset ready state for ${playerId} - need to add launchers`);
+      });
+      
+      // Broadcast error and keep in BUILD phase
       this.broadcast({
         type: MESSAGE_TYPES.ERROR,
         message: 'همه بازیکنان باید حداقل یک موشک‌انداز در زمین داشته باشند'
       });
+      
+      // Broadcast BUILD_PHASE_STATE to keep players in build phase
+      this.broadcast({
+        type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+        phase: GAME_PHASES.BUILD,
+        buildBudget: this.sharedBuildBudget,
+        gridSize: this.config.gridSize
+      });
+      
       return;
     }
     
