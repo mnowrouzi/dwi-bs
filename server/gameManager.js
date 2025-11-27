@@ -10,7 +10,7 @@ export class GameManager {
   constructor(roomId, config) {
     this.roomId = roomId;
     this.config = config;
-    this.players = new Map(); // playerId -> { ws, units, ready, mana, shotsThisTurn }
+    this.players = new Map(); // playerId -> { ws, units, ready, mana, shotsThisTurn, launcherShotsThisTurn }
     this.phase = GAME_PHASES.WAITING;
     this.currentTurn = null;
     // Shared budget for both players
@@ -26,7 +26,8 @@ export class GameManager {
       },
       ready: false,
       mana: this.config.mana.startMana,
-      shotsThisTurn: 0
+      shotsThisTurn: 0,
+      launcherShotsThisTurn: new Map() // launcherId -> count
       // Note: buildBudget is now shared, not per player
     });
   }
@@ -186,6 +187,7 @@ export class GameManager {
     this.players.forEach((player) => {
       player.mana = this.config.mana.startMana;
       player.shotsThisTurn = 0;
+      player.launcherShotsThisTurn = new Map();
     });
 
     logger.room(this.roomId, `Turn: ${this.currentTurn}`);
@@ -238,6 +240,13 @@ export class GameManager {
     if (player.shotsThisTurn >= this.config.mana.maxShotsPerTurn) {
       return { success: false, error: 'Max shots per turn reached' };
     }
+    
+    // Validate shots per launcher per turn
+    const launcherShots = player.launcherShotsThisTurn.get(launcherId) || 0;
+    const maxShotsPerLauncher = this.config.mana.maxShotsPerLauncherPerTurn || 1;
+    if (launcherShots >= maxShotsPerLauncher) {
+      return { success: false, error: `Max shots per launcher per turn reached (${maxShotsPerLauncher})` };
+    }
 
     // Validate path
     const pathCheck = validatePath(pathTiles, launcher.config.range, this.config.gridSize);
@@ -275,6 +284,8 @@ export class GameManager {
 
     // Update shots
     player.shotsThisTurn++;
+    const launcherShots = player.launcherShotsThisTurn.get(launcherId) || 0;
+    player.launcherShotsThisTurn.set(launcherId, launcherShots + 1);
 
     return {
       success: true,
@@ -309,6 +320,7 @@ export class GameManager {
     // Reset shots and add mana per turn
     this.players.forEach((player, playerId) => {
       player.shotsThisTurn = 0;
+      player.launcherShotsThisTurn = new Map();
       if (playerId === this.currentTurn) {
         const oldMana = player.mana;
         player.mana = Math.min(

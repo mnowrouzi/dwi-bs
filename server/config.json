@@ -6,7 +6,8 @@
     "startMana": 2,
     "maxMana": 10,
     "manaPerTurn": 2,
-    "maxShotsPerTurn": 2
+    "maxShotsPerTurn": 2,
+    "maxShotsPerLauncherPerTurn": 1
   },
   "launchers": [
     {
@@ -82,7 +83,7 @@
       "cost": 5,
       "coverage": 4,
       "interceptChance": 0.95,
-      "size": [3, 3],
+      "size": [2, 2],
       "color": "#2266ff",
       "defenseSound": "assets/audio/defense_intercept.mp3"
     }

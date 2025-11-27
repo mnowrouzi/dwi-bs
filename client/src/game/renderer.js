@@ -71,6 +71,10 @@ export class GameRenderer extends Phaser.Scene {
     });
     this.shotsThisTurn = 0;
     this.currentTurn = null;
+    // Multiple paths before shooting
+    this.pendingShots = []; // Array of { launcher, pathTiles }
+    this.selectedLauncherForShots = null;
+    this.pathSelectionMode = false; // Whether we're selecting cells for path
     this.selectedLauncher = null;
     this.pathTiles = [];
     this.isDrawingPath = false;
@@ -442,9 +446,8 @@ export class GameRenderer extends Phaser.Scene {
           this.unitPlacement.selectLauncherType(launcher.id);
           logger.info('Launcher selected for placement:', launcher.id, { cost: launcher.cost });
           this.onNotification(`موشک‌انداز ${launcher.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
-        } else if (this.currentPhase === GAME_PHASES.BATTLE) {
-          this.selectLauncherForShot(launcher.id);
         }
+        // In BATTLE phase, launcher buttons are disabled - selection is done by clicking on grid
       })
       .on('pointerover', () => {
         btn.setFillStyle(0x4a6a7a);
@@ -503,6 +506,7 @@ export class GameRenderer extends Phaser.Scene {
           logger.info('Defense selected for placement:', defense.id);
           this.onNotification(`پدافند ${defense.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         }
+        // In BATTLE phase, defense buttons are disabled
       })
       .on('pointerover', () => {
         btn.setFillStyle(0x4a6a7a);
@@ -569,23 +573,17 @@ export class GameRenderer extends Phaser.Scene {
         this.handleBattleClick(pointer);
       }
     });
-    
-    this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath && this.selectedLauncher) {
-        this.pathDrawer.handleMove(pointer);
-      }
-    });
-    
-    this.input.on('pointerup', () => {
-      if (this.isDrawingPath) {
-        this.finishPathDrawing();
-      }
-    });
   }
 
   handleBattleClick(pointer) {
-    // Check if click is on UI buttons (right side)
+    // Check if click is on UI buttons (right side) or fire button
     if (pointer.x > 950) {
+      return;
+    }
+    
+    // Check if it's player's turn
+    if (this.currentTurn !== this.gameState.playerId) {
+      this.onNotification('نوبت شما نیست');
       return;
     }
     
@@ -593,7 +591,7 @@ export class GameRenderer extends Phaser.Scene {
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
-    // Check if click is on a launcher (for selecting)
+    // Determine which grid was clicked
     let gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
     let gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
     let isPlayerGrid = true;
@@ -606,46 +604,149 @@ export class GameRenderer extends Phaser.Scene {
       isPlayerGrid = false;
     }
     
-    if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize && isPlayerGrid) {
-      // Check if clicked on a launcher
-      const clickedLauncher = this.playerUnits.launchers.find(l => {
-        if (l.destroyed) return false;
-        const config = this.config.launchers.find(c => c.id === l.type);
-        if (!config) return false;
-        const [sizeX, sizeY] = config.size;
-        return gridX >= l.x && gridX < l.x + sizeX &&
-               gridY >= l.y && gridY < l.y + sizeY;
-      });
-      
-      if (clickedLauncher) {
-        // Select launcher and check mana
-        const launcherConfig = this.config.launchers.find(c => c.id === clickedLauncher.type);
-        if (launcherConfig && this.mana >= launcherConfig.manaCost) {
-          this.selectedLauncher = clickedLauncher;
-          this.onNotification(`موشک‌انداز ${launcherConfig.titleFA} انتخاب شد. مسیر را با drag کردن مشخص کنید.`);
-          // Start path from launcher center position
-          const launcherCenterX = clickedLauncher.x + Math.floor(launcherConfig.size[0] / 2);
-          const launcherCenterY = clickedLauncher.y + Math.floor(launcherConfig.size[1] / 2);
-          this.pathDrawer.startPath({ x: launcherCenterX, y: launcherCenterY, isPlayerGrid: true });
-          this.isDrawingPath = true;
-          return;
-        } else if (launcherConfig && this.mana < launcherConfig.manaCost) {
-          this.onNotification(`مانا کافی نیست. نیاز به ${launcherConfig.manaCost} مانا دارید.`);
-          return;
-        }
-      }
+    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      return; // Outside grids
     }
     
-    // If we have a selected launcher and are drawing path, continue drawing
-    if (this.selectedLauncher && this.isDrawingPath) {
-      // Path drawing continues on pointer move
+    // If no launcher selected, check if clicking on a launcher
+    if (!this.selectedLauncherForShots) {
+      if (isPlayerGrid) {
+        const clickedLauncher = this.playerUnits.launchers.find(l => {
+          if (l.destroyed) return false;
+          const config = this.config.launchers.find(c => c.id === l.type);
+          if (!config) return false;
+          const [sizeX, sizeY] = config.size;
+          return gridX >= l.x && gridX < l.x + sizeX &&
+                 gridY >= l.y && gridY < l.y + sizeY;
+        });
+        
+        if (clickedLauncher) {
+          // Select launcher for shots
+          const launcherConfig = this.config.launchers.find(c => c.id === clickedLauncher.type);
+          if (launcherConfig) {
+            // Check how many shots already planned for this launcher
+            const shotsForThisLauncher = this.pendingShots.filter(s => s.launcherId === clickedLauncher.id).length;
+            const maxShotsPerLauncher = this.config.mana.maxShotsPerLauncherPerTurn || 1;
+            
+            if (shotsForThisLauncher >= maxShotsPerLauncher) {
+              this.onNotification(`حداکثر ${maxShotsPerLauncher} شلیک از این موشک‌انداز در این نوبت امکان‌پذیر است`);
+              return;
+            }
+            
+            // Check total shots
+            if (this.pendingShots.length >= this.config.mana.maxShotsPerTurn) {
+              this.onNotification(`حداکثر ${this.config.mana.maxShotsPerTurn} شلیک در این نوبت امکان‌پذیر است`);
+              return;
+            }
+            
+            this.selectedLauncherForShots = clickedLauncher;
+            this.currentPathTiles = [];
+            this.pathSelectionMode = true;
+            this.onNotification(`موشک‌انداز ${launcherConfig.titleFA} انتخاب شد. خانه‌های مسیر را انتخاب کنید.`);
+            
+            // Initialize path highlight graphics
+            if (!this.pathHighlightGraphics) {
+              this.pathHighlightGraphics = this.add.graphics();
+              this.pathHighlightGraphics.setDepth(40);
+            }
+            
+            return;
+          }
+        }
+      }
+      this.onNotification('لطفاً ابتدا روی موشک‌انداز کلیک کنید');
       return;
     }
     
-    // If no launcher selected, show message
-    if (!this.selectedLauncher) {
-      this.onNotification('لطفاً ابتدا روی موشک‌انداز کلیک کنید');
+    // If launcher selected, add cell to path
+    if (this.pathSelectionMode && this.selectedLauncherForShots) {
+      const newTile = { x: gridX, y: gridY, isPlayerGrid };
+      
+      // Check if tile is already in current path
+      const exists = this.currentPathTiles.some(t => t.x === newTile.x && t.y === newTile.y);
+      if (exists) {
+        // If clicking on last tile, finish path
+        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+        if (lastTile.x === newTile.x && lastTile.y === newTile.y && this.currentPathTiles.length >= 2) {
+          this.finishPathSelection();
+          return;
+        }
+        return;
+      }
+      
+      // Check if adjacent to last tile (or first tile)
+      if (this.currentPathTiles.length > 0) {
+        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+        const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && Math.abs(newTile.y - lastTile.y) <= 1 &&
+                      !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+        if (!isAdj) {
+          this.onNotification('خانه باید مجاور خانه قبلی باشد');
+          return;
+        }
+      }
+      
+      // Add tile to path
+      this.currentPathTiles.push(newTile);
+      this.drawPathHighlight();
     }
+  }
+  
+  drawPathHighlight() {
+    if (!this.pathHighlightGraphics) return;
+    
+    this.pathHighlightGraphics.clear();
+    
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    
+    // Draw red transparent highlight for selected cells
+    this.pathHighlightGraphics.fillStyle(0xff0000, 0.5); // Red with 50% transparency
+    
+    this.currentPathTiles.forEach(tile => {
+      const offsetX = tile.isPlayerGrid ? GRID_OFFSET_X : opponentOffsetX;
+      const x = offsetX + tile.x * GRID_TILE_SIZE;
+      const y = GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE;
+      this.pathHighlightGraphics.fillRect(x, y, GRID_TILE_SIZE, GRID_TILE_SIZE);
+    });
+    
+    // Draw lines connecting path
+    this.pathHighlightGraphics.lineStyle(3, 0xff0000, 0.8);
+    for (let i = 0; i < this.currentPathTiles.length - 1; i++) {
+      const start = this.currentPathTiles[i];
+      const end = this.currentPathTiles[i + 1];
+      
+      const startOffsetX = start.isPlayerGrid ? GRID_OFFSET_X : opponentOffsetX;
+      const endOffsetX = end.isPlayerGrid ? GRID_OFFSET_X : opponentOffsetX;
+      
+      const startX = startOffsetX + start.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
+      const startY = GRID_OFFSET_Y + start.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
+      const endX = endOffsetX + end.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
+      const endY = GRID_OFFSET_Y + end.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
+      
+      this.pathHighlightGraphics.moveTo(startX, startY);
+      this.pathHighlightGraphics.lineTo(endX, endY);
+    }
+  }
+  
+  finishPathSelection() {
+    if (this.currentPathTiles.length < 2) {
+      this.onNotification('مسیر باید حداقل 2 خانه باشد');
+      return;
+    }
+    
+    // Add to pending shots
+    this.pendingShots.push({
+      launcherId: this.selectedLauncherForShots.id,
+      pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y })) // Remove isPlayerGrid for server
+    });
+    
+    this.onNotification(`مسیر ${this.pendingShots.length} اضافه شد. می‌توانید مسیر دیگری انتخاب کنید یا شلیک کنید.`);
+    
+    // Reset for next path
+    this.selectedLauncherForShots = null;
+    this.currentPathTiles = [];
+    this.pathSelectionMode = false;
+    this.drawPathHighlight();
   }
 
   finishPathDrawing() {
@@ -718,14 +819,66 @@ export class GameRenderer extends Phaser.Scene {
     this.onNotification(faTexts.notifications.waitingForOpponent);
   }
 
-  sendShotRequest() {
-    if (!this.selectedLauncher) return;
+  fireAllShots() {
+    if (this.pendingShots.length === 0) {
+      this.onNotification('هیچ شلیکی انتخاب نشده است');
+      return;
+    }
     
-    this.gameState.ws.send(JSON.stringify({
-      type: MESSAGE_TYPES.REQUEST_SHOT,
-      launcherId: this.selectedLauncher.id,
-      pathTiles: this.pathTiles
-    }));
+    // Check if it's player's turn
+    if (this.currentTurn !== this.gameState.playerId) {
+      this.onNotification('نوبت شما نیست');
+      return;
+    }
+    
+    // Calculate total mana cost
+    let totalManaCost = 0;
+    for (const shot of this.pendingShots) {
+      const launcher = this.playerUnits.launchers.find(l => l.id === shot.launcherId);
+      if (launcher) {
+        const launcherConfig = this.config.launchers.find(c => c.id === launcher.type);
+        if (launcherConfig) {
+          totalManaCost += launcherConfig.manaCost;
+        }
+      }
+    }
+    
+    // Check if enough mana
+    if (this.mana < totalManaCost) {
+      this.onNotification(`مانا کافی نیست. نیاز به ${totalManaCost} مانا دارید.`);
+      return;
+    }
+    
+    // Check max shots per turn
+    if (this.pendingShots.length > this.config.mana.maxShotsPerTurn) {
+      this.onNotification(`حداکثر ${this.config.mana.maxShotsPerTurn} شلیک در این نوبت امکان‌پذیر است`);
+      return;
+    }
+    
+    // Send all shots
+    for (const shot of this.pendingShots) {
+      this.gameState.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.REQUEST_SHOT,
+        launcherId: shot.launcherId,
+        pathTiles: shot.pathTiles
+      }));
+    }
+    
+    // Clear pending shots
+    this.pendingShots = [];
+    this.selectedLauncherForShots = null;
+    this.currentPathTiles = [];
+    this.pathSelectionMode = false;
+    if (this.pathHighlightGraphics) {
+      this.pathHighlightGraphics.clear();
+    }
+    
+    this.onNotification(`${this.pendingShots.length} شلیک ارسال شد`);
+  }
+  
+  sendShotRequest() {
+    // Legacy method - now we use fireAllShots
+    this.fireAllShots();
   }
 
   handleServerMessage(data) {
@@ -754,6 +907,15 @@ export class GameRenderer extends Phaser.Scene {
         this.manaBar.updateMana(this.mana);
         this.updateTurnIndicator();
         this.audioController.playSound('turnChange');
+        
+        // Reset pending shots on turn change
+        this.pendingShots = [];
+        this.selectedLauncherForShots = null;
+        this.currentPathTiles = [];
+        this.pathSelectionMode = false;
+        if (this.pathHighlightGraphics) {
+          this.pathHighlightGraphics.clear();
+        }
         break;
       
       case MESSAGE_TYPES.APPLY_DAMAGE:
