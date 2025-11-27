@@ -1084,10 +1084,28 @@ export class GameRenderer extends Phaser.Scene {
       const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
       
       // Adjacency check: tiles are adjacent if they are next to each other
-      // Even if they are in different grids (player grid to enemy grid transition)
-      const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
-                    Math.abs(newTile.y - lastTile.y) <= 1 &&
-                    !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+      // For tiles in different grids: check if they are at the boundary
+      let isAdj = false;
+      
+      if (newTile.isPlayerGrid === lastTile.isPlayerGrid) {
+        // Same grid: check normal adjacency
+        isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
+                Math.abs(newTile.y - lastTile.y) <= 1 &&
+                !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+      } else {
+        // Different grids: check if they are at the boundary
+        // Player grid to enemy grid: last tile at x=gridSize-1 and new tile at x=0 (same y)
+        // Or last tile at x=0 and new tile at x=gridSize-1 (same y)
+        if (lastTile.isPlayerGrid && !newTile.isPlayerGrid) {
+          // From player grid to enemy grid
+          isAdj = (lastTile.x === this.gridSize - 1 && newTile.x === 0 && lastTile.y === newTile.y) ||
+                  (lastTile.y === this.gridSize - 1 && newTile.y === 0 && lastTile.x === newTile.x);
+        } else if (!lastTile.isPlayerGrid && newTile.isPlayerGrid) {
+          // From enemy grid to player grid
+          isAdj = (lastTile.x === 0 && newTile.x === this.gridSize - 1 && lastTile.y === newTile.y) ||
+                  (lastTile.y === 0 && newTile.y === this.gridSize - 1 && lastTile.x === newTile.x);
+        }
+      }
       
       // Check range limit (Manhattan distance from launcher to end of path)
       let withinRange = true;
