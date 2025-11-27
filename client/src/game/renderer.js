@@ -417,10 +417,10 @@ export class GameRenderer extends Phaser.Scene {
       .setDepth(100)
       .setVisible(false) // Hidden by default, shown only in aiming mode
       .on('pointerdown', () => {
-        if (this.aimingMode && this.currentPhase === GAME_PHASES.BATTLE && 
+        if (this.currentPhase === GAME_PHASES.BATTLE && 
             this.currentTurn === this.gameState.playerId) {
-          // If path is empty, do nothing
-          if (!this.currentPathTiles || this.currentPathTiles.length < 2) {
+          // If not in aiming mode or path is empty, do nothing
+          if (!this.aimingMode || !this.currentPathTiles || this.currentPathTiles.length < 2) {
             return;
           }
           // If path is valid, execute shot
@@ -641,7 +641,7 @@ export class GameRenderer extends Phaser.Scene {
     
     // Battle phase - drag for path drawing
     this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && pointer.isDown && this.isDrawingPath) {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && pointer.isDown) {
         this.handleBattleDrag(pointer);
       }
     });
@@ -742,10 +742,11 @@ export class GameRenderer extends Phaser.Scene {
               this.pathHighlightGraphics.setDepth(40);
             }
             
-            // Show FIRE button in aiming mode
+            // Enable FIRE button in aiming mode (it's already visible in battle phase)
             if (this.fireButton) {
-              this.fireButton.setVisible(true);
-              this.fireButtonText.setVisible(true);
+              this.fireButton.setAlpha(1.0);
+              this.fireButton.setFillStyle(0xff0000);
+              this.fireButtonText.setAlpha(1.0);
             }
             
             // Hide unit panel buttons in battle phase
@@ -1259,10 +1260,13 @@ export class GameRenderer extends Phaser.Scene {
     // Hide unit panel buttons in battle phase
     this.hideUnitPanelInBattle();
     
-    // FIRE button will be shown only when aiming mode is active
+    // Show FIRE button in battle phase (will be enabled when aiming mode is active)
     if (this.fireButton) {
-      this.fireButton.setVisible(false);
-      this.fireButtonText.setVisible(false);
+      this.fireButton.setVisible(true);
+      this.fireButtonText.setVisible(true);
+      // Disable initially (will be enabled when path is ready)
+      this.fireButton.setAlpha(0.5);
+      this.fireButtonText.setAlpha(0.5);
     }
     
     // Start battle turn timer if it's player's turn
@@ -1344,10 +1348,10 @@ export class GameRenderer extends Phaser.Scene {
       if (this.pathHighlightGraphics) {
         this.pathHighlightGraphics.clear();
       }
-      // Hide FIRE button
+      // Disable FIRE button (keep visible but disabled)
       if (this.fireButton) {
-        this.fireButton.setVisible(false);
-        this.fireButtonText.setVisible(false);
+        this.fireButton.setAlpha(0.5);
+        this.fireButtonText.setAlpha(0.5);
       }
       // Request turn switch from server (end turn without firing)
       this.gameState.ws.send(JSON.stringify({
