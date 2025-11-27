@@ -79,14 +79,26 @@ export class UnitPlacement {
       y
     });
     
+    // Update budget locally
+    this.scene.budget -= launcherConfig.cost;
+    if (this.scene.budgetText) {
+      this.scene.budgetText.setText(`${this.scene.budgetText.text.split(':')[0]}: ${this.scene.budget}`);
+    }
+    
     // Send to server
     this.scene.gameState.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.PLACE_UNITS,
       units: this.placedUnits
     }));
     
+    // Render units immediately (optimistic update)
+    this.scene.renderUnits();
+    
     // Clear selection after placing
     this.selectedLauncherType = null;
+    
+    // Show success message
+    this.scene.onNotification(`موشک‌انداز ${launcherConfig.titleFA} با موفقیت قرار گرفت`);
   }
 
   placeDefense(x, y) {
@@ -125,14 +137,26 @@ export class UnitPlacement {
       y
     });
     
+    // Update budget locally
+    this.scene.budget -= defenseConfig.cost;
+    if (this.scene.budgetText) {
+      this.scene.budgetText.setText(`${this.scene.budgetText.text.split(':')[0]}: ${this.scene.budget}`);
+    }
+    
     // Send to server
     this.scene.gameState.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.PLACE_UNITS,
       units: this.placedUnits
     }));
     
+    // Render units immediately (optimistic update)
+    this.scene.renderUnits();
+    
     // Clear selection after placing
     this.selectedDefenseType = null;
+    
+    // Show success message
+    this.scene.onNotification(`پدافند ${defenseConfig.titleFA} با موفقیت قرار گرفت`);
   }
 
   canPlaceUnit(x, y, sizeX, sizeY) {

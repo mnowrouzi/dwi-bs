@@ -294,12 +294,12 @@ export class GameRenderer extends Phaser.Scene {
     const buttonHeight = 70;
     
     // Launchers section
-    this.add.text(panelX, panelY, faTexts.units.launcher, {
+    const launcherLabel = this.add.text(panelX, panelY, faTexts.units.launcher, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    }).setOrigin(0, 0);
+    }).setOrigin(0, 0).setDepth(100); // Higher depth to appear above buttons
     
     this.launcherButtons = [];
     this.config.launchers.forEach((launcher, index) => {
@@ -337,13 +337,13 @@ export class GameRenderer extends Phaser.Scene {
         fontFamily: 'Vazirmatn, Tahoma',
         wordWrap: { width: 70 },
         align: 'center'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(60); // Above button but below label
       
       this.add.text(btnX, btnY + 20, `💰${launcher.cost}`, {
         fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(60);
       
       this.launcherButtons.push(btn);
     });
@@ -351,12 +351,12 @@ export class GameRenderer extends Phaser.Scene {
     // Defenses section (positioned below launchers)
     const defensesStartY = panelY + 40 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 40;
     
-    this.add.text(panelX, defensesStartY, faTexts.units.defense, {
+    const defenseLabel = this.add.text(panelX, defensesStartY, faTexts.units.defense, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    }).setOrigin(0, 0);
+    }).setOrigin(0, 0).setDepth(100); // Higher depth to appear above buttons
     
     this.defenseButtons = [];
     this.config.defenses.forEach((defense, index) => {
@@ -372,6 +372,7 @@ export class GameRenderer extends Phaser.Scene {
       )
       .setInteractive({ useHandCursor: true })
       .setStrokeStyle(2, 0x5a7a8a)
+      .setDepth(50) // Lower depth than labels
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectDefenseType(defense.id);
@@ -392,13 +393,13 @@ export class GameRenderer extends Phaser.Scene {
         fontFamily: 'Vazirmatn, Tahoma',
         wordWrap: { width: 70 },
         align: 'center'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(60);
       
       this.add.text(btnX, btnY + 20, `💰${defense.cost}`, {
         fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(60);
       
       this.defenseButtons.push(btn);
     });
@@ -570,12 +571,17 @@ export class GameRenderer extends Phaser.Scene {
       if (this.budgetText) {
         this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
       }
-      logger.info('Budget updated from server', { budget: this.budget });
+      logger.info('Budget updated from server', { budget: this.budget, serverBudget: data.budget, configBudget: this.config?.budget });
     }
     
     if (data.units) {
       this.playerUnits = data.units;
       this.renderUnits();
+    }
+    
+    // Also update budget display if it changed
+    if (this.budgetText && this.budget !== undefined) {
+      this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
     }
   }
 
@@ -685,12 +691,32 @@ export class GameRenderer extends Phaser.Scene {
     this.playerUnits.launchers.forEach(unit => {
       if (unit.destroyed) return;
       const config = this.config.launchers.find(l => l.id === unit.type);
-      const sprite = this.add.image(
-        GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (config.size[0] * GRID_TILE_SIZE) / 2,
-        GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (config.size[1] * GRID_TILE_SIZE) / 2,
-        `launcher_${unit.type}`
-      );
-      sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
+      if (!config) return;
+      
+      const [sizeX, sizeY] = config.size;
+      const spriteKey = `launcher_${unit.type}`;
+      
+      // Check if sprite exists, if not use placeholder
+      let sprite;
+      if (this.textures.exists(spriteKey)) {
+        sprite = this.add.image(
+          GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+          GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+          spriteKey
+        );
+        // Set scale based on size
+        sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+      } else {
+        // Fallback to placeholder
+        sprite = this.add.image(
+          GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+          GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+          spriteKey
+        );
+        sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
+        sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+      }
+      
       this.unitSprites.push(sprite);
     });
     
