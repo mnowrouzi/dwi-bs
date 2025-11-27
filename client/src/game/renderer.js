@@ -1106,6 +1106,15 @@ export class GameRenderer extends Phaser.Scene {
     if (this.currentPhase !== GAME_PHASES.BUILD) {
       this.currentPhase = GAME_PHASES.BUILD;
       this.onPhaseChange(this.currentPhase);
+      
+      // Hide FIRE button in build phase
+      if (this.fireButton) {
+        this.fireButton.setVisible(false);
+        this.fireButtonText.setVisible(false);
+      }
+      
+      // Stop battle timer if running
+      this.stopBattleTurnTimer();
     }
     
     // Update budget from server (which uses config)
