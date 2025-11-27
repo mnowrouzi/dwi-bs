@@ -12,28 +12,36 @@ import logger from '@shared/logger.js';
 export class GameRenderer extends Phaser.Scene {
   constructor() {
     super({ key: 'GameRenderer' });
+    // Store scene data to be used in init
+    this.sceneData = null;
   }
 
   init(data) {
     logger.info('GameRenderer.init called', { 
       hasData: !!data, 
       hasConfig: !!(data && data.config),
+      hasSceneData: !!this.sceneData,
       dataKeys: data ? Object.keys(data) : []
     });
     
-    if (!data || !data.config) {
+    // Use sceneData if data is not provided (Phaser calls init without data)
+    const initData = data && data.config ? data : (this.sceneData || data);
+    
+    if (!initData || !initData.config) {
       logger.warn('GameRenderer.init: config is missing!', { 
+        hasData: !!data,
+        hasSceneData: !!this.sceneData,
         data: data ? Object.keys(data) : 'no data',
-        config: data?.config ? 'has config' : 'no config'
+        config: initData?.config ? 'has config' : 'no config'
       });
       // Don't return, let it retry in preload/create
       return;
     }
     
-    this.config = data.config;
-    this.gameState = data.gameState;
-    this.onNotification = data.onNotification || (() => {});
-    this.onPhaseChange = data.onPhaseChange || (() => {});
+    this.config = initData.config;
+    this.gameState = initData.gameState || this.gameState;
+    this.onNotification = initData.onNotification || this.onNotification || (() => {});
+    this.onPhaseChange = initData.onPhaseChange || this.onPhaseChange || (() => {});
     
     this.gridSize = this.config.gridSize;
     this.playerUnits = { launchers: [], defenses: [] };

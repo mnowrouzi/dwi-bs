@@ -79,12 +79,9 @@ export default function GameScene({ gameState, onBackToMenu }) {
     };
 
     try {
-      // Create scene instance and initialize it with data BEFORE creating Phaser Game
+      // Store scene data in a way that can be accessed when Phaser calls init
       const sceneInstance = new GameRenderer();
-      
-      // Initialize scene with data first
-      logger.info('Initializing scene with config data...', { hasConfig: !!config, configKeys: config ? Object.keys(config) : [] });
-      sceneInstance.init(sceneData);
+      sceneInstance.sceneData = sceneData; // Store data for later use
       
       const phaserConfig = {
         type: Phaser.AUTO,
@@ -92,14 +89,14 @@ export default function GameScene({ gameState, onBackToMenu }) {
         height: 800,
         parent: gameRef.current,
         backgroundColor: '#0a0d0f',
-        scene: sceneInstance, // Use pre-initialized scene instance
+        scene: sceneInstance,
         physics: {
           default: 'arcade',
           arcade: { debug: false }
         }
       };
 
-      // Create game instance with pre-initialized scene
+      // Create game instance - Phaser will call init automatically
       phaserGameRef.current = new Phaser.Game(phaserConfig);
       
       logger.info('Phaser game initialized successfully');
