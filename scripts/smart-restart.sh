@@ -32,20 +32,33 @@ if echo "$ALL_CHANGED" | grep -qE "(^client/|^shared/)"; then
     NEED_CLIENT_RESTART=true
 fi
 
-# If no specific changes detected, check if processes are running
+# Check if processes are running
+SERVER_RUNNING=$(lsof -ti:3000 > /dev/null 2>&1 && echo "true" || echo "false")
+CLIENT_RUNNING=$(lsof -ti:5173 > /dev/null 2>&1 && echo "true" || echo "false")
+
+# If no specific changes detected, check what's running and what's not
 if [ "$NEED_SERVER_RESTART" = false ] && [ "$NEED_CLIENT_RESTART" = false ]; then
-    # Check what's currently running
-    if lsof -ti:3000 > /dev/null 2>&1; then
-        NEED_SERVER_RESTART=true
-    fi
-    if lsof -ti:5173 > /dev/null 2>&1; then
-        NEED_CLIENT_RESTART=true
-    fi
-    
-    # If nothing is running, start both
-    if [ "$NEED_SERVER_RESTART" = false ] && [ "$NEED_CLIENT_RESTART" = false ]; then
+    # If nothing changed but something is not running, start what's missing
+    if [ "$SERVER_RUNNING" = "false" ] && [ "$CLIENT_RUNNING" = "false" ]; then
+        # Both are down, start both
         NEED_SERVER_RESTART=true
         NEED_CLIENT_RESTART=true
+    elif [ "$SERVER_RUNNING" = "false" ]; then
+        # Server is down but client is running - start server (needed for game to work)
+        NEED_SERVER_RESTART=true
+    elif [ "$CLIENT_RUNNING" = "false" ]; then
+        # Client is down but server is running - start client
+        NEED_CLIENT_RESTART=true
+    fi
+else
+    # We have specific changes, but also ensure dependencies are running
+    # If server needs restart but client is not running, start client too
+    if [ "$NEED_SERVER_RESTART" = true ] && [ "$CLIENT_RUNNING" = "false" ]; then
+        NEED_CLIENT_RESTART=true
+    fi
+    # If client needs restart but server is not running, start server too
+    if [ "$NEED_CLIENT_RESTART" = true ] && [ "$SERVER_RUNNING" = "false" ]; then
+        NEED_SERVER_RESTART=true
     fi
 fi
 
