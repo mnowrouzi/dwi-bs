@@ -760,12 +760,12 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // If in aiming mode, start drag-based path drawing immediately
+    // If in aiming mode and clicking on grid, start path from clicked tile
     if (this.aimingMode && this.selectedLauncherForShots) {
-      // Start drawing path from this tile (can start anywhere on grid)
+      // Start drawing path from this tile
       const startTile = { x: gridX, y: gridY, isPlayerGrid };
       
-      // Always start new path when clicking in aiming mode
+      // Start new path when clicking in aiming mode
       this.currentPathTiles = [startTile];
       this.isDrawingPath = true;
       this.drawPathHighlight();
@@ -795,6 +795,14 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     const newTile = { x: gridX, y: gridY, isPlayerGrid };
+    
+    // If path is empty, start from current tile
+    if (!this.currentPathTiles || this.currentPathTiles.length === 0) {
+      this.currentPathTiles = [newTile];
+      this.isDrawingPath = true;
+      this.drawPathHighlight();
+      return;
+    }
     
     // Check if tile is already in path (backward drag - reset to that cell)
     const existingIndex = this.currentPathTiles.findIndex(t => t.x === newTile.x && t.y === newTile.y);
