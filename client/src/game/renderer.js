@@ -1271,31 +1271,43 @@ export class GameRenderer extends Phaser.Scene {
       }
       
       // Check range limit (path length, not Manhattan distance)
-      // Range = maximum number of tiles in the path (excluding launcher position)
+      // Range = maximum number of tiles in the path (simple count of colored tiles)
+      // Path starts from first adjacent tile, so path length = number of colored tiles
       let withinRange = true;
       if (this.selectedLauncherForShots) {
         const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type);
         if (launcherConfig && launcherConfig.range) {
-          // Calculate path length after adding this tile
-          const pathLengthAfterAdd = this.currentPathTiles.length + 1;
-          // Range is the maximum number of tiles in the path
+          // Simple calculation: path length = number of tiles in currentPathTiles
+          // After adding new tile, path length will be currentPathTiles.length + 1
+          const currentPathLength = this.currentPathTiles.length;
+          const pathLengthAfterAdd = currentPathLength + 1;
+          
+          // Range is the maximum number of tiles in the path (including first adjacent tile)
+          // So if range = 15, we can have 15 tiles total
           withinRange = pathLengthAfterAdd <= launcherConfig.range;
           
-          logger.info('Range check', {
-            currentPathLength: this.currentPathTiles.length,
+          logger.info('Range check (simple tile count)', {
+            currentPathLength,
             pathLengthAfterAdd,
             maxRange: launcherConfig.range,
             launcherType: launcherConfig.id,
             withinRange,
-            pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+            calculation: `${pathLengthAfterAdd} <= ${launcherConfig.range} = ${withinRange}`,
+            pathTiles: this.currentPathTiles.map((t, idx) => ({ 
+              index: idx + 1, 
+              x: t.x, 
+              y: t.y, 
+              isPlayerGrid: t.isPlayerGrid 
+            }))
           });
           
           if (!withinRange) {
-            logger.warn('Path length exceeds range', {
-              currentPathLength: this.currentPathTiles.length,
+            logger.warn('Path length exceeds range - BLOCKING TILE', {
+              currentPathLength,
               pathLengthAfterAdd,
               maxRange: launcherConfig.range,
-              launcherType: launcherConfig.id
+              launcherType: launcherConfig.id,
+              reason: `Cannot add tile ${pathLengthAfterAdd} because max range is ${launcherConfig.range}`
             });
           }
         }
