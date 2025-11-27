@@ -862,11 +862,27 @@ export class GameRenderer extends Phaser.Scene {
             }
             
             // Enter aiming mode immediately - no second click needed
+            logger.info('=== SETTING AIMING MODE ===', {
+              before: {
+                aimingMode: this.aimingMode,
+                isDrawingPath: this.isDrawingPath,
+                selectedLauncher: this.selectedLauncherForShots?.id
+              }
+            });
+            
             this.selectedLauncherForShots = clickedLauncher;
             this.currentPathTiles = []; // Start with empty path - will be filled by drag
             this.aimingMode = true;
             this.pathSelectionMode = true;
             this.isDrawingPath = true; // Enable drawing immediately after launcher selection
+            
+            logger.info('=== AIMING MODE SET ===', {
+              after: {
+                aimingMode: this.aimingMode,
+                isDrawingPath: this.isDrawingPath,
+                selectedLauncher: this.selectedLauncherForShots?.id
+              }
+            });
             
             // Initialize path highlight graphics
             if (!this.pathHighlightGraphics) {
