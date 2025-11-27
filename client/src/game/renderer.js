@@ -1063,21 +1063,47 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // Check if adjacent to last tile
+    // Check if adjacent to last tile (can be in different grids)
     if (this.currentPathTiles.length > 0) {
       const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+      
+      // Adjacency check: tiles are adjacent if they are next to each other
+      // Even if they are in different grids (player grid to enemy grid transition)
       const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
                     Math.abs(newTile.y - lastTile.y) <= 1 &&
                     !(newTile.x === lastTile.x && newTile.y === lastTile.y);
       
-      logger.info('Checking adjacency', {
+      // Check range limit (Manhattan distance from launcher to end of path)
+      let withinRange = true;
+      if (this.selectedLauncherForShots) {
+        const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type);
+        if (launcherConfig && launcherConfig.range) {
+          // Calculate Manhattan distance from launcher position to new tile
+          const launcherX = this.selectedLauncherForShots.x;
+          const launcherY = this.selectedLauncherForShots.y;
+          const distance = Math.abs(newTile.x - launcherX) + Math.abs(newTile.y - launcherY);
+          withinRange = distance <= launcherConfig.range;
+          
+          if (!withinRange) {
+            logger.info('Tile outside range', {
+              distance,
+              maxRange: launcherConfig.range,
+              launcherPos: { x: launcherX, y: launcherY },
+              newTile: { x: newTile.x, y: newTile.y }
+            });
+          }
+        }
+      }
+      
+      logger.info('Checking adjacency and range', {
         newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
         lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
         isAdj,
+        withinRange,
         existingIndex
       });
       
-      if (isAdj && existingIndex === -1) {
+      if (isAdj && withinRange && existingIndex === -1) {
         // Add new adjacent tile
         this.currentPathTiles.push(newTile);
         this.drawPathHighlight();
@@ -1089,7 +1115,7 @@ export class GameRenderer extends Phaser.Scene {
         });
       } else {
         logger.info('Tile not added', {
-          reason: !isAdj ? 'not adjacent' : 'already exists',
+          reason: !isAdj ? 'not adjacent' : !withinRange ? 'outside range' : 'already exists',
           newTile: { gridX, gridY, isPlayerGrid },
           lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid }
         });
@@ -1437,8 +1463,13 @@ export class GameRenderer extends Phaser.Scene {
       pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
     }));
     
-    // Clear state
-    this.pendingShots = [];
+    // Add to pending shots (for tracking multiple shots per turn)
+    this.pendingShots.push({
+      launcherId: this.selectedLauncherForShots.id,
+      pathTiles: [...this.currentPathTiles]
+    });
+    
+    // Clear current aiming state but allow selecting another launcher
     this.selectedLauncherForShots = null;
     this.currentPathTiles = [];
     this.pathSelectionMode = false;
@@ -1450,10 +1481,29 @@ export class GameRenderer extends Phaser.Scene {
     // Clear launcher highlight
     this.clearLauncherHighlight();
     
-    // Disable FIRE button after firing (keep visible but disabled)
-    if (this.fireButton) {
-      this.fireButton.setAlpha(0.5);
-      this.fireButtonText.setAlpha(0.5);
+    // Check if we can fire more shots
+    const remainingShots = this.config.mana.maxShotsPerTurn - this.pendingShots.length;
+    if (remainingShots > 0) {
+      // Enable FIRE button if we can fire more shots
+      if (this.fireButton) {
+        this.fireButton.setAlpha(0.5); // Disabled until new launcher selected
+        this.fireButtonText.setAlpha(0.5);
+      }
+      logger.info('Shot fired, can fire more shots', {
+        remainingShots,
+        totalShots: this.pendingShots.length,
+        maxShots: this.config.mana.maxShotsPerTurn
+      });
+    } else {
+      // All shots fired, disable FIRE button
+      if (this.fireButton) {
+        this.fireButton.setAlpha(0.5);
+        this.fireButtonText.setAlpha(0.5);
+      }
+      logger.info('All shots fired for this turn', {
+        totalShots: this.pendingShots.length,
+        maxShots: this.config.mana.maxShotsPerTurn
+      });
     }
     
     // Stop timer
