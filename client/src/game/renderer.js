@@ -1240,8 +1240,17 @@ export class GameRenderer extends Phaser.Scene {
           // Range is the maximum number of tiles in the path
           withinRange = pathLengthAfterAdd <= launcherConfig.range;
           
+          logger.info('Range check', {
+            currentPathLength: this.currentPathTiles.length,
+            pathLengthAfterAdd,
+            maxRange: launcherConfig.range,
+            launcherType: launcherConfig.id,
+            withinRange,
+            pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+          });
+          
           if (!withinRange) {
-            logger.info('Path length exceeds range', {
+            logger.warn('Path length exceeds range', {
               currentPathLength: this.currentPathTiles.length,
               pathLengthAfterAdd,
               maxRange: launcherConfig.range,
