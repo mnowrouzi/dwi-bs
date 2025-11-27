@@ -161,8 +161,9 @@ const styles = {
     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
   },
   version: {
-    fontSize: '1rem',
-    marginBottom: '2rem',
+    fontSize: '0.9rem',
+    marginTop: '2rem',
+    marginBottom: '0',
     color: '#aaa',
     fontFamily: 'Vazirmatn, Tahoma',
     opacity: 0.8,

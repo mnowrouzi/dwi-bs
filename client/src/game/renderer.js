@@ -139,15 +139,15 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
+    logger.info('GameRenderer.create: Setting up game...', { 
+      gridSize: this.gridSize,
+      launchers: this.config.launchers?.map(l => ({ id: l.id, cost: l.cost, size: l.size }))
+    });
+    
     // After load completes, create placeholders for any missing textures
     this.load.once('complete', () => {
       logger.info('Load complete, checking for missing textures...');
       this.createPlaceholderGraphics();
-    });
-    
-    logger.info('GameRenderer.create: Setting up game...', { 
-      gridSize: this.gridSize,
-      launchers: this.config.launchers?.map(l => ({ id: l.id, cost: l.cost, size: l.size }))
     });
     
     // Setup grid
