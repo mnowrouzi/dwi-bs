@@ -1196,10 +1196,14 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Check if tile is already in path (backward drag - reset to that cell)
+    // BUT: Only check this AFTER we've verified the tile is not in launcher area
+    // and is adjacent to the last tile. This prevents false truncation.
     const existingIndex = this.currentPathTiles.findIndex(t => 
       t.x === newTile.x && t.y === newTile.y && t.isPlayerGrid === newTile.isPlayerGrid
     );
     
+    // Only process backward drag if tile is actually in path AND we're going backward
+    // Don't truncate if we're just hovering or if tile is adjacent and new
     if (existingIndex >= 0) {
       const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
       const isLastTile = existingIndex === this.currentPathTiles.length - 1;
@@ -1208,22 +1212,37 @@ export class GameRenderer extends Phaser.Scene {
         // Hovering over the last tile - don't do anything, allow continuing
         logger.info('Hovering over last tile, allowing continue', {
           tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
-          pathLength: this.currentPathTiles.length
+          pathLength: this.currentPathTiles.length,
+          existingIndex
         });
         return;
       } else {
         // Backward drag - reset path to this cell
-        this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
-        this.drawPathHighlight();
-        this.updateBarootDisplay();
-        logger.info('Path truncated by backward drag', { 
-          newLength: this.currentPathTiles.length,
-          truncatedTo: { gridX, gridY, isPlayerGrid },
-          existingIndex,
-          lastTileBeforeTruncate: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
-          fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
-        });
-        return;
+        // Only truncate if we're actually going backward (not just passing through)
+        const distanceFromLast = this.currentPathTiles.length - 1 - existingIndex;
+        if (distanceFromLast > 1) {
+          // Actually going backward - truncate
+          this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
+          this.drawPathHighlight();
+          this.updateBarootDisplay();
+          logger.info('Path truncated by backward drag', { 
+            newLength: this.currentPathTiles.length,
+            truncatedTo: { gridX, gridY, isPlayerGrid },
+            existingIndex,
+            distanceFromLast,
+            lastTileBeforeTruncate: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+          });
+          return;
+        } else {
+          // Tile is adjacent to last tile but already in path - might be a duplicate detection issue
+          logger.info('Tile already in path but adjacent to last - skipping duplicate', {
+            tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+            existingIndex,
+            pathLength: this.currentPathTiles.length
+          });
+          return;
+        }
       }
     }
     
