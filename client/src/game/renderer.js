@@ -1053,6 +1053,35 @@ export class GameRenderer extends Phaser.Scene {
     }
   }
   
+  // Helper function to get all intermediate tiles between two points
+  // Uses Bresenham-like line algorithm to fill gaps when dragging fast
+  getIntermediateTiles(startTile, endTile) {
+    const tiles = [];
+    const dx = endTile.x - startTile.x;
+    const dy = endTile.y - startTile.y;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    
+    if (steps <= 1) {
+      // Already adjacent, no intermediate tiles
+      return tiles;
+    }
+    
+    // Generate intermediate tiles
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const x = Math.round(startTile.x + dx * t);
+      const y = Math.round(startTile.y + dy * t);
+      
+      // Only add if it's different from start and end, and within bounds
+      if ((x !== startTile.x || y !== startTile.y) && 
+          (x !== endTile.x || y !== endTile.y)) {
+        tiles.push({ x, y, isPlayerGrid: startTile.isPlayerGrid });
+      }
+    }
+    
+    return tiles;
+  }
+
   handleBattleDrag(pointer) {
     logger.info('=== handleBattleDrag called ===', {
       pointerX: pointer.x,
