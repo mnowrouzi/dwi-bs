@@ -32,17 +32,24 @@ export function calculateAOEDamage(centerX, centerY, aoe, opponentUnits, gridSiz
       }
     }
 
-    // Check defenses
+    // Check defenses (with size support)
     for (const defense of opponentUnits.defenses) {
       if (defense.destroyed) continue;
       
-      if (defense.x === cell.x && defense.y === cell.y) {
-        defense.destroyed = true;
-        damage.defenses.push({
-          id: defense.id,
-          x: defense.x,
-          y: defense.y
-        });
+      // Check if defense occupies this cell (considering size)
+      const [sizeX, sizeY] = defense.config.size || [1, 1];
+      for (let dy = 0; dy < sizeY; dy++) {
+        for (let dx = 0; dx < sizeX; dx++) {
+          if (defense.x + dx === cell.x && defense.y + dy === cell.y) {
+            defense.destroyed = true;
+            damage.defenses.push({
+              id: defense.id,
+              x: defense.x,
+              y: defense.y
+            });
+            break;
+          }
+        }
       }
     }
   }

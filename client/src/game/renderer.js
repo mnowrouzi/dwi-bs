@@ -36,8 +36,21 @@ export class GameRenderer extends Phaser.Scene {
     // Create placeholder graphics
     this.createPlaceholderGraphics();
     
-    // Load sounds (if available)
-    this.audioController = new AudioController(this, this.config.sounds);
+    // Load sounds (if available) - errors won't break the game
+    try {
+      this.audioController = new AudioController(this, this.config.sounds);
+    } catch (e) {
+      logger.warn('Audio controller initialization failed, continuing without sound:', e.message);
+      // Create a minimal audio controller that does nothing
+      this.audioController = {
+        playSound: () => {},
+        playBGM: () => {},
+        stopBGM: () => {},
+        setBGMVolume: () => {},
+        setSFXVolume: () => {},
+        toggleMute: () => {}
+      };
+    }
   }
 
   create() {
@@ -53,6 +66,9 @@ export class GameRenderer extends Phaser.Scene {
     // Initialize systems
     this.pathDrawer = new PathDrawer(this);
     this.unitPlacement = new UnitPlacement(this, this.config);
+    
+    // Store logger reference for audio controller
+    this.logger = logger;
     
     // Start build phase
     this.currentPhase = GAME_PHASES.BUILD;
@@ -76,21 +92,19 @@ export class GameRenderer extends Phaser.Scene {
       .fillRect(0, 0, GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2)
       .generateTexture('launcher_long', GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
     
-    // Defense units
-    this.add.graphics()
-      .fillStyle(0x66ccff)
-      .fillCircle(GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2)
-      .generateTexture('defense_short', GRID_TILE_SIZE, GRID_TILE_SIZE);
-    
-    this.add.graphics()
-      .fillStyle(0x4488ff)
-      .fillCircle(GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2)
-      .generateTexture('defense_medium', GRID_TILE_SIZE, GRID_TILE_SIZE);
-    
-    this.add.graphics()
-      .fillStyle(0x2266ff)
-      .fillCircle(GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2, GRID_TILE_SIZE / 2)
-      .generateTexture('defense_long', GRID_TILE_SIZE, GRID_TILE_SIZE);
+    // Defense units (with size support)
+    this.config.defenses.forEach(defense => {
+      const [sizeX, sizeY] = defense.size || [1, 1];
+      const width = sizeX * GRID_TILE_SIZE;
+      const height = sizeY * GRID_TILE_SIZE;
+      
+      this.add.graphics()
+        .fillStyle(Phaser.Display.Color.HexStringToColor(defense.color).color)
+        .fillRect(0, 0, width, height)
+        .lineStyle(2, 0xffffff, 0.5)
+        .strokeRect(0, 0, width, height)
+        .generateTexture(`defense_${defense.id}`, width, height);
+    });
     
     // Missile
     this.add.graphics()
@@ -535,9 +549,12 @@ export class GameRenderer extends Phaser.Scene {
     this.playerUnits.defenses.forEach(unit => {
       if (unit.destroyed) return;
       const config = this.config.defenses.find(d => d.id === unit.type);
+      if (!config) return;
+      
+      const [sizeX, sizeY] = config.size || [1, 1];
       const sprite = this.add.image(
-        GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2,
-        GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2,
+        GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+        GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
         `defense_${unit.type}`
       );
       sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);

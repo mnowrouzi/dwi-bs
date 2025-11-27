@@ -41,12 +41,31 @@ export class AudioController {
     
     try {
       if (this.sounds[soundName]) {
-        // In production, play actual sound file
-        // this.scene.sound.play(soundName, { volume: this.sounds[soundName].volume });
-        console.log(`Playing sound: ${soundName}`);
+        // Try to play actual sound file if available
+        try {
+          const sound = this.scene.sound.get(soundName);
+          if (sound) {
+            sound.play({ volume: this.sounds[soundName].volume });
+            return;
+          }
+        } catch (e) {
+          // Sound file not found, continue with placeholder
+        }
+        
+        // Fallback: just log (no error thrown)
+        if (this.scene && this.scene.logger) {
+          this.scene.logger.debug(`Sound file not found: ${soundName}, continuing without sound`);
+        } else {
+          console.log(`Sound file not found: ${soundName}, continuing without sound`);
+        }
       }
     } catch (e) {
-      console.warn(`Sound ${soundName} not available`);
+      // Log error but don't break the game
+      if (this.scene && this.scene.logger) {
+        this.scene.logger.warn(`Error playing sound ${soundName}:`, e.message);
+      } else {
+        console.warn(`Error playing sound ${soundName}:`, e.message);
+      }
     }
   }
 

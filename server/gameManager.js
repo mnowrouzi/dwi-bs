@@ -105,18 +105,20 @@ export class GameManager {
       return { success: false, error: 'Insufficient budget' };
     }
 
-    // Validate grid bounds
+    // Validate grid bounds (with size support)
     for (const launcher of placedUnits.launchers) {
-      if (launcher.x < 0 || launcher.x >= this.config.gridSize ||
-          launcher.y < 0 || launcher.y >= this.config.gridSize) {
-        return { success: false, error: 'Unit out of bounds' };
+      const [sizeX, sizeY] = launcher.config.size;
+      if (launcher.x < 0 || launcher.x + sizeX > this.config.gridSize ||
+          launcher.y < 0 || launcher.y + sizeY > this.config.gridSize) {
+        return { success: false, error: 'Launcher out of bounds' };
       }
     }
 
     for (const defense of placedUnits.defenses) {
-      if (defense.x < 0 || defense.x >= this.config.gridSize ||
-          defense.y < 0 || defense.y >= this.config.gridSize) {
-        return { success: false, error: 'Unit out of bounds' };
+      const [sizeX, sizeY] = defense.config.size || [1, 1];
+      if (defense.x < 0 || defense.x + sizeX > this.config.gridSize ||
+          defense.y < 0 || defense.y + sizeY > this.config.gridSize) {
+        return { success: false, error: 'Defense out of bounds' };
       }
     }
 
@@ -300,10 +302,14 @@ export class GameManager {
   }
 
   checkWinCondition() {
+    // Win condition: All launchers of a team must be destroyed
+    // Defenses don't count for win condition
     for (const [playerId, player] of this.players.entries()) {
       const aliveLaunchers = player.units.launchers.filter(l => !l.destroyed);
       if (aliveLaunchers.length === 0) {
-        return playerId === 'player1' ? 'player2' : 'player1';
+        const winner = playerId === 'player1' ? 'player2' : 'player1';
+        logger.room(this.roomId, `All launchers destroyed for ${playerId}. Winner: ${winner}`);
+        return winner;
       }
     }
     return null;

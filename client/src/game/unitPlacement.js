@@ -78,8 +78,11 @@ export class UnitPlacement {
       return;
     }
     
+    // Get size from config
+    const [sizeX, sizeY] = defenseConfig.size || [1, 1];
+    
     // Check if position is valid
-    const canPlace = this.canPlaceUnit(x, y, 1, 1);
+    const canPlace = this.canPlaceUnit(x, y, sizeX, sizeY);
     
     if (!canPlace) {
       this.scene.onNotification('نمی‌توان در این موقعیت قرار داد');
@@ -112,8 +115,16 @@ export class UnitPlacement {
       let unitSizeX = 1, unitSizeY = 1;
       if (unit.type === 'launcher') {
         const config = this.config.launchers.find(l => l.id === unit.launcherType);
-        unitSizeX = config.size[0];
-        unitSizeY = config.size[1];
+        if (config) {
+          unitSizeX = config.size[0];
+          unitSizeY = config.size[1];
+        }
+      } else if (unit.type === 'defense') {
+        const config = this.config.defenses.find(d => d.id === unit.defenseType);
+        if (config) {
+          unitSizeX = config.size[0] || 1;
+          unitSizeY = config.size[1] || 1;
+        }
       }
       
       // Check overlap

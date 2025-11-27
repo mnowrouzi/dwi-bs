@@ -1,17 +1,17 @@
 {
   "gridSize": 10,
-  "budget": 50,
+  "budget": 10,
   "mana": {
-    "startMana": 5,
-    "maxMana": 20,
-    "manaPerTurn": 3,
+    "startMana": 2,
+    "maxMana": 10,
+    "manaPerTurn": 2,
     "maxShotsPerTurn": 2
   },
   "launchers": [
     {
       "id": "short",
       "titleFA": "موشک کوتاه‌برد",
-      "cost": 5,
+      "cost": 2,
       "manaCost": 2,
       "range": 6,
       "aoe": [3, 3],
@@ -25,9 +25,9 @@
     {
       "id": "medium",
       "titleFA": "موشک میان‌برد",
-      "cost": 10,
+      "cost": 3,
       "manaCost": 4,
-      "range": 10,
+      "range": 12,
       "aoe": [5, 5],
       "size": [1, 2],
       "color": "#ff6600",
@@ -39,7 +39,7 @@
     {
       "id": "long",
       "titleFA": "موشک بلند‌برد",
-      "cost": 20,
+      "cost": 4,
       "manaCost": 6,
       "range": 15,
       "aoe": [7, 7],
@@ -55,27 +55,30 @@
     {
       "id": "shortDef",
       "titleFA": "پدافند کوتاه‌برد",
-      "cost": 8,
-      "coverage": 4,
+      "cost": 3,
+      "coverage": 2,
       "interceptChance": 0.7,
+      "size": [1, 1],
       "color": "#66ccff",
       "defenseSound": "assets/audio/defense_intercept.wav"
     },
     {
       "id": "mediumDef",
       "titleFA": "پدافند میان‌برد",
-      "cost": 15,
-      "coverage": 6,
+      "cost": 4,
+      "coverage": 3,
       "interceptChance": 0.85,
+      "size": [1, 1],
       "color": "#4488ff",
       "defenseSound": "assets/audio/defense_intercept.wav"
     },
     {
       "id": "longDef",
       "titleFA": "پدافند بلند‌برد",
-      "cost": 25,
-      "coverage": 8,
+      "cost": 5,
+      "coverage": 4,
       "interceptChance": 0.95,
+      "size": [2, 2],
       "color": "#2266ff",
       "defenseSound": "assets/audio/defense_intercept.wav"
     }
