@@ -684,9 +684,17 @@ export class GameRenderer extends Phaser.Scene {
     this.currentPhase = GAME_PHASES.GAME_OVER;
   }
 
-  animateMissile(pathTiles, onComplete) {
-    const missile = this.add.image(0, 0, 'missile');
+  animateMissile(pathTiles, onComplete, launcherType = null) {
+    // Use missile sprite from config if available, otherwise use placeholder
+    const missileKey = launcherType && this.textures.exists(`missile_${launcherType}`) 
+      ? `missile_${launcherType}` 
+      : 'missile';
+    
+    const missile = this.add.image(0, 0, missileKey);
     missile.setDepth(100);
+    
+    // Set missile size to tile size (as per user requirement - missile should be tile-sized)
+    missile.setDisplaySize(GRID_TILE_SIZE, GRID_TILE_SIZE);
     
     const startX = GRID_OFFSET_X + pathTiles[0].x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
     const startY = GRID_OFFSET_Y + pathTiles[0].y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
