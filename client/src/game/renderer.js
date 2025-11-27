@@ -78,6 +78,10 @@ export class GameRenderer extends Phaser.Scene {
     this.selectedLauncher = null;
     this.pathTiles = [];
     this.isDrawingPath = false;
+    // Battle turn timer
+    this.battleTurnTimer = null;
+    this.battleTurnTimerText = null;
+    this.turnTimeSeconds = this.config.battle?.turnTimeSeconds || 20;
     
     logger.info('GameRenderer initialized', { 
       gridSize: this.gridSize, 
@@ -396,6 +400,50 @@ export class GameRenderer extends Phaser.Scene {
     
     // Unit selection panel
     this.setupUnitPanel();
+    
+    // FIRE button (only shown in battle phase)
+    this.setupFireButton();
+  }
+  
+  setupFireButton() {
+    // FIRE button positioned below ready button or in battle area
+    const fireButtonX = 1000;
+    const fireButtonY = 600;
+    
+    this.fireButton = this.add.rectangle(fireButtonX, fireButtonY, 150, 50, 0xff0000)
+      .setInteractive({ useHandCursor: true })
+      .setStrokeStyle(3, 0xffffff)
+      .setDepth(100)
+      .setVisible(false) // Hidden by default, shown in battle phase
+      .on('pointerdown', () => {
+        if (this.currentPhase === GAME_PHASES.BATTLE && 
+            this.currentTurn === this.gameState.playerId) {
+          if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
+            this.finishPathSelection();
+            if (this.pendingShots.length > 0) {
+              this.fireAllShots();
+            }
+          } else if (this.pendingShots.length > 0) {
+            // Fire pending shots
+            this.fireAllShots();
+          } else {
+            this.onNotification('ابتدا مسیر را رسم کنید');
+          }
+        }
+      })
+      .on('pointerover', () => {
+        this.fireButton.setFillStyle(0xff3333);
+      })
+      .on('pointerout', () => {
+        this.fireButton.setFillStyle(0xff0000);
+      });
+    
+    this.fireButtonText = this.add.text(fireButtonX, fireButtonY, 'شلیک (F)', {
+      fontSize: '20px',
+      color: '#ffffff',
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
+    }).setOrigin(0.5).setDepth(101).setVisible(false);
   }
 
   setupUnitPanel() {
@@ -574,16 +622,42 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   setupInput() {
+    // Build phase - click to place units
     this.input.on('pointerdown', (pointer) => {
       if (this.currentPhase === GAME_PHASES.BUILD) {
         this.unitPlacement.handleClick(pointer);
       } else if (this.currentPhase === GAME_PHASES.BATTLE) {
-        this.handleBattleClick(pointer);
+        this.handleBattlePointerDown(pointer);
+      }
+    });
+    
+    // Battle phase - drag for path drawing
+    this.input.on('pointermove', (pointer) => {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath && pointer.isDown) {
+        this.handleBattleDrag(pointer);
+      }
+    });
+    
+    this.input.on('pointerup', (pointer) => {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath) {
+        this.handleBattlePointerUp(pointer);
+      }
+    });
+    
+    // F key to fire
+    this.input.keyboard?.on('keydown-F', () => {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.currentTurn === this.gameState.playerId) {
+        if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
+          this.finishPathSelection();
+          if (this.pendingShots.length > 0) {
+            this.fireAllShots();
+          }
+        }
       }
     });
   }
 
-  handleBattleClick(pointer) {
+  handleBattlePointerDown(pointer) {
     // Check if click is on UI buttons (right side) or fire button
     if (pointer.x > 950) {
       return;
@@ -666,36 +740,91 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // If launcher selected, add cell to path
+    // If launcher selected, start drag-based path drawing
     if (this.pathSelectionMode && this.selectedLauncherForShots) {
-      const newTile = { x: gridX, y: gridY, isPlayerGrid };
+      // Start drawing path from this tile
+      const startTile = { x: gridX, y: gridY, isPlayerGrid };
       
-      // Check if tile is already in current path
-      const exists = this.currentPathTiles.some(t => t.x === newTile.x && t.y === newTile.y);
-      if (exists) {
-        // If clicking on last tile, finish path
-        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
-        if (lastTile.x === newTile.x && lastTile.y === newTile.y && this.currentPathTiles.length >= 2) {
-          this.finishPathSelection();
-          return;
-        }
-        return;
-      }
-      
-      // Check if adjacent to last tile (or first tile)
-      if (this.currentPathTiles.length > 0) {
-        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
-        const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && Math.abs(newTile.y - lastTile.y) <= 1 &&
-                      !(newTile.x === lastTile.x && newTile.y === lastTile.y);
-        if (!isAdj) {
-          this.onNotification('خانه باید مجاور خانه قبلی باشد');
+      // Check if starting on launcher position
+      const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
+      if (launcherConfig) {
+        const [sizeX, sizeY] = launcherConfig.size;
+        const onLauncher = gridX >= this.selectedLauncherForShots.x && 
+                          gridX < this.selectedLauncherForShots.x + sizeX &&
+                          gridY >= this.selectedLauncherForShots.y && 
+                          gridY < this.selectedLauncherForShots.y + sizeY;
+        
+        if (onLauncher || this.currentPathTiles.length === 0) {
+          // Start new path
+          this.currentPathTiles = [startTile];
+          this.isDrawingPath = true;
+          this.drawPathHighlight();
           return;
         }
       }
-      
-      // Add tile to path
-      this.currentPathTiles.push(newTile);
+    }
+  }
+  
+  handleBattleDrag(pointer) {
+    if (!this.isDrawingPath || !this.selectedLauncherForShots) return;
+    
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    
+    // Determine which grid
+    let gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
+    let gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+    let isPlayerGrid = true;
+    
+    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      gridX = Math.floor((pointer.x - opponentOffsetX) / GRID_TILE_SIZE);
+      gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+      isPlayerGrid = false;
+    }
+    
+    if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      return; // Outside grids
+    }
+    
+    const newTile = { x: gridX, y: gridY, isPlayerGrid };
+    
+    // Check if tile is already in path (backward drag - reset to that cell)
+    const existingIndex = this.currentPathTiles.findIndex(t => t.x === newTile.x && t.y === newTile.y);
+    if (existingIndex >= 0 && existingIndex < this.currentPathTiles.length - 1) {
+      // Backward drag - reset path to this cell
+      this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
       this.drawPathHighlight();
+      return;
+    }
+    
+    // Check if adjacent to last tile
+    if (this.currentPathTiles.length > 0) {
+      const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+      const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
+                    Math.abs(newTile.y - lastTile.y) <= 1 &&
+                    !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+      
+      if (isAdj && existingIndex === -1) {
+        // Add new adjacent tile
+        this.currentPathTiles.push(newTile);
+        this.drawPathHighlight();
+      }
+    }
+  }
+  
+  handleBattlePointerUp(pointer) {
+    if (!this.isDrawingPath) return;
+    
+    this.isDrawingPath = false;
+    
+    // Path is complete, player can review or press FIRE
+    if (this.currentPathTiles.length >= 2) {
+      this.onNotification('مسیر کامل شد. برای شلیک کلید F را فشار دهید یا دکمه شلیک را بزنید.');
+    } else {
+      // Path too short, clear it
+      this.currentPathTiles = [];
+      this.drawPathHighlight();
+      this.onNotification('مسیر باید حداقل 2 خانه باشد');
     }
   }
   
@@ -704,21 +833,31 @@ export class GameRenderer extends Phaser.Scene {
     
     this.pathHighlightGraphics.clear();
     
+    if (!this.currentPathTiles || this.currentPathTiles.length === 0) return;
+    
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
-    // Draw red transparent highlight for selected cells
-    this.pathHighlightGraphics.fillStyle(0xff0000, 0.5); // Red with 50% transparency
-    
-    this.currentPathTiles.forEach(tile => {
+    // Draw transparent overlay for path cells (more visible)
+    this.currentPathTiles.forEach((tile, index) => {
       const offsetX = tile.isPlayerGrid ? GRID_OFFSET_X : opponentOffsetX;
       const x = offsetX + tile.x * GRID_TILE_SIZE;
       const y = GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE;
+      
+      // Different opacity for start/end vs middle
+      const alpha = (index === 0 || index === this.currentPathTiles.length - 1) ? 0.7 : 0.5;
+      const color = index === 0 ? 0x00ff00 : (index === this.currentPathTiles.length - 1 ? 0xff0000 : 0xffaa00);
+      
+      this.pathHighlightGraphics.fillStyle(color, alpha);
       this.pathHighlightGraphics.fillRect(x, y, GRID_TILE_SIZE, GRID_TILE_SIZE);
+      
+      // Draw border
+      this.pathHighlightGraphics.lineStyle(2, color, 0.9);
+      this.pathHighlightGraphics.strokeRect(x, y, GRID_TILE_SIZE, GRID_TILE_SIZE);
     });
     
-    // Draw lines connecting path
-    this.pathHighlightGraphics.lineStyle(3, 0xff0000, 0.8);
+    // Draw lines connecting path (thicker, more visible)
+    this.pathHighlightGraphics.lineStyle(4, 0xffaa00, 0.8);
     for (let i = 0; i < this.currentPathTiles.length - 1; i++) {
       const start = this.currentPathTiles[i];
       const end = this.currentPathTiles[i + 1];
@@ -926,6 +1065,13 @@ export class GameRenderer extends Phaser.Scene {
         if (this.pathHighlightGraphics) {
           this.pathHighlightGraphics.clear();
         }
+        
+        // Start battle turn timer if it's player's turn
+        if (this.currentTurn === this.gameState.playerId && this.currentPhase === GAME_PHASES.BATTLE) {
+          this.startBattleTurnTimer();
+        } else {
+          this.stopBattleTurnTimer();
+        }
         break;
       
       case MESSAGE_TYPES.APPLY_DAMAGE:
@@ -1040,6 +1186,98 @@ export class GameRenderer extends Phaser.Scene {
     this.mana = data.mana[this.gameState.playerId];
     this.manaBar.updateMana(this.mana);
     this.updateTurnIndicator();
+    
+    // Show FIRE button in battle phase
+    if (this.fireButton) {
+      this.fireButton.setVisible(true);
+      this.fireButtonText.setVisible(true);
+    }
+    
+    // Start battle turn timer if it's player's turn
+    if (this.currentTurn === this.gameState.playerId) {
+      this.startBattleTurnTimer();
+    }
+  }
+  
+  startBattleTurnTimer() {
+    // Clear existing timer
+    this.stopBattleTurnTimer();
+    
+    const turnTime = this.turnTimeSeconds;
+    let timeLeft = turnTime;
+    
+    // Create or update timer text
+    if (!this.battleTurnTimerText) {
+      this.battleTurnTimerText = this.add.text(50, 100, `زمان نوبت: ${timeLeft} ثانیه`, {
+        fontSize: '18px',
+        color: '#ffd700',
+        fontFamily: 'Vazirmatn, Tahoma',
+        fontWeight: 'bold',
+        padding: { x: 10, y: 5 },
+        backgroundColor: '#1c1f22',
+        padding: { x: 15, y: 8 }
+      }).setOrigin(0, 0).setDepth(100);
+    } else {
+      this.battleTurnTimerText.setVisible(true);
+      this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
+    }
+    
+    // Update timer every second
+    this.battleTurnTimer = this.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        timeLeft--;
+        if (this.battleTurnTimerText) {
+          if (timeLeft > 5) {
+            this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
+            this.battleTurnTimerText.setColor('#ffd700');
+          } else if (timeLeft > 0) {
+            this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
+            this.battleTurnTimerText.setColor('#ff0000'); // Red when time is running out
+          } else {
+            // Time's up - auto-fire if valid path exists
+            this.handleTurnTimerExpired();
+          }
+        }
+      },
+      repeat: turnTime - 1
+    });
+  }
+  
+  stopBattleTurnTimer() {
+    if (this.battleTurnTimer) {
+      this.battleTurnTimer.destroy();
+      this.battleTurnTimer = null;
+    }
+    if (this.battleTurnTimerText) {
+      this.battleTurnTimerText.setVisible(false);
+    }
+  }
+  
+  handleTurnTimerExpired() {
+    this.stopBattleTurnTimer();
+    
+    // Check if there's a valid path ready to fire
+    if (this.currentPathTiles && this.currentPathTiles.length >= 2 && this.selectedLauncherForShots) {
+      // Auto-fire the current path
+      this.onNotification('زمان تمام شد! شلیک خودکار...');
+      this.finishPathSelection();
+      // Fire immediately
+      if (this.pendingShots.length > 0) {
+        this.fireAllShots();
+      }
+    } else {
+      // No valid path - do nothing, no mana consumed
+      this.onNotification('زمان تمام شد. هیچ شلیکی انجام نشد.');
+      // Clear any partial path
+      this.currentPathTiles = [];
+      this.selectedLauncherForShots = null;
+      this.pathSelectionMode = false;
+      if (this.pathHighlightGraphics) {
+        this.pathHighlightGraphics.clear();
+      }
+      // Switch turn (server will handle this)
+    }
   }
 
   handleDamage(data) {
