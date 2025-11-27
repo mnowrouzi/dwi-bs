@@ -673,13 +673,26 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleBattlePointerDown(pointer) {
+    logger.info('Battle pointer down', {
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      phase: this.currentPhase,
+      currentTurn: this.currentTurn,
+      playerId: this.gameState.playerId
+    });
+    
     // Check if click is on UI buttons (right side) or fire button
     if (pointer.x > 950) {
+      logger.info('Click on UI area, ignoring', { pointerX: pointer.x });
       return;
     }
     
     // Check if it's player's turn
     if (this.currentTurn !== this.gameState.playerId) {
+      logger.info('Not player turn', { 
+        currentTurn: this.currentTurn, 
+        playerId: this.gameState.playerId 
+      });
       this.onNotification('نوبت شما نیست');
       return;
     }
@@ -701,7 +714,19 @@ export class GameRenderer extends Phaser.Scene {
       isPlayerGrid = false;
     }
     
+    logger.info('Grid cell clicked', {
+      gridX,
+      gridY,
+      isPlayerGrid,
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      aimingMode: this.aimingMode,
+      selectedLauncher: this.selectedLauncherForShots?.id,
+      currentPathLength: this.currentPathTiles?.length || 0
+    });
+    
     if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      logger.info('Click outside grids', { gridX, gridY, gridSize: this.gridSize });
       return; // Outside grids
     }
     
@@ -826,6 +851,16 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattleDrag(pointer) {
+    logger.info('Battle drag event', {
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      pointerIsDown: pointer.isDown,
+      aimingMode: this.aimingMode,
+      selectedLauncher: this.selectedLauncherForShots?.id,
+      isDrawingPath: this.isDrawingPath,
+      currentPathLength: this.currentPathTiles?.length || 0
+    });
+    
     if (!this.aimingMode || !this.selectedLauncherForShots || !this.isDrawingPath) {
       logger.warn('Drag blocked', {
         aimingMode: this.aimingMode,
@@ -834,14 +869,6 @@ export class GameRenderer extends Phaser.Scene {
       });
       return;
     }
-    
-    logger.info('Drag in battle phase', {
-      aimingMode: this.aimingMode,
-      selectedLauncher: this.selectedLauncherForShots?.id,
-      pathLength: this.currentPathTiles?.length || 0,
-      pointerX: pointer.x,
-      pointerY: pointer.y
-    });
     
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
@@ -857,7 +884,17 @@ export class GameRenderer extends Phaser.Scene {
       isPlayerGrid = false;
     }
     
+    logger.info('Drag on grid cell', {
+      gridX,
+      gridY,
+      isPlayerGrid,
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      currentPathLength: this.currentPathTiles?.length || 0
+    });
+    
     if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      logger.info('Drag outside grids', { gridX, gridY, gridSize: this.gridSize });
       return; // Outside grids
     }
     
@@ -868,7 +905,12 @@ export class GameRenderer extends Phaser.Scene {
       this.currentPathTiles = [newTile];
       this.drawPathHighlight();
       this.updateBarootDisplay();
-      logger.info('Path started from drag', { tile: newTile });
+      logger.info('Path started from drag', { 
+        tile: newTile,
+        gridX,
+        gridY,
+        isPlayerGrid
+      });
       return;
     }
     
@@ -879,7 +921,11 @@ export class GameRenderer extends Phaser.Scene {
       this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
       this.drawPathHighlight();
       this.updateBarootDisplay();
-      logger.info('Path truncated by backward drag', { newLength: this.currentPathTiles.length });
+      logger.info('Path truncated by backward drag', { 
+        newLength: this.currentPathTiles.length,
+        truncatedTo: { gridX, gridY, isPlayerGrid },
+        existingIndex
+      });
       return;
     }
     
@@ -890,14 +936,28 @@ export class GameRenderer extends Phaser.Scene {
                     Math.abs(newTile.y - lastTile.y) <= 1 &&
                     !(newTile.x === lastTile.x && newTile.y === lastTile.y);
       
+      logger.info('Checking adjacency', {
+        newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+        lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+        isAdj,
+        existingIndex
+      });
+      
       if (isAdj && existingIndex === -1) {
         // Add new adjacent tile
         this.currentPathTiles.push(newTile);
         this.drawPathHighlight();
         this.updateBarootDisplay();
         logger.info('Tile added to path', { 
-          newTile, 
-          pathLength: this.currentPathTiles.length 
+          newTile: { gridX, gridY, isPlayerGrid },
+          pathLength: this.currentPathTiles.length,
+          fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+        });
+      } else {
+        logger.info('Tile not added', {
+          reason: !isAdj ? 'not adjacent' : 'already exists',
+          newTile: { gridX, gridY, isPlayerGrid },
+          lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid }
         });
       }
     }
