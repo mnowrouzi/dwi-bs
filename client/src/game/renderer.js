@@ -667,6 +667,10 @@ export class GameRenderer extends Phaser.Scene {
 
   handleServerMessage(data) {
     switch (data.type) {
+      case MESSAGE_TYPES.ROOM_UPDATE:
+        this.handleRoomUpdate(data);
+        break;
+      
       case MESSAGE_TYPES.BUILD_PHASE_STATE:
         this.handleBuildPhaseState(data);
         break;
@@ -701,6 +705,13 @@ export class GameRenderer extends Phaser.Scene {
       case MESSAGE_TYPES.GAME_OVER:
         this.handleGameOver(data);
         break;
+    }
+  }
+  
+  handleRoomUpdate(data) {
+    // Check if opponent connected
+    if (data.players === 2 && this.currentPhase === GAME_PHASES.BUILD) {
+      this.onNotification(faTexts.notifications.opponentConnected);
     }
   }
 
