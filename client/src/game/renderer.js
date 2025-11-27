@@ -450,10 +450,14 @@ export class GameRenderer extends Phaser.Scene {
         // In BATTLE phase, launcher buttons are disabled - selection is done by clicking on grid
       })
       .on('pointerover', () => {
-        btn.setFillStyle(0x4a6a7a);
+        if (this.currentPhase === GAME_PHASES.BUILD) {
+          btn.setFillStyle(0x4a6a7a);
+        }
       })
       .on('pointerout', () => {
-        btn.setFillStyle(0x3f5765);
+        if (this.currentPhase === GAME_PHASES.BUILD) {
+          btn.setFillStyle(0x3f5765);
+        }
       });
       
       this.add.text(btnX, btnY - 20, launcher.titleFA, {
@@ -509,10 +513,14 @@ export class GameRenderer extends Phaser.Scene {
         // In BATTLE phase, defense buttons are disabled
       })
       .on('pointerover', () => {
-        btn.setFillStyle(0x4a6a7a);
+        if (this.currentPhase === GAME_PHASES.BUILD) {
+          btn.setFillStyle(0x4a6a7a);
+        }
       })
       .on('pointerout', () => {
-        btn.setFillStyle(0x3f5765);
+        if (this.currentPhase === GAME_PHASES.BUILD) {
+          btn.setFillStyle(0x3f5765);
+        }
       });
       
       this.add.text(btnX, btnY - 15, defense.titleFA, {
@@ -864,6 +872,8 @@ export class GameRenderer extends Phaser.Scene {
       }));
     }
     
+    const shotsCount = this.pendingShots.length;
+    
     // Clear pending shots
     this.pendingShots = [];
     this.selectedLauncherForShots = null;
@@ -873,7 +883,7 @@ export class GameRenderer extends Phaser.Scene {
       this.pathHighlightGraphics.clear();
     }
     
-    this.onNotification(`${this.pendingShots.length} شلیک ارسال شد`);
+    this.onNotification(`${shotsCount} شلیک ارسال شد`);
   }
   
   sendShotRequest() {
