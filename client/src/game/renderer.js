@@ -1000,8 +1000,10 @@ export class GameRenderer extends Phaser.Scene {
             // Initialize empty path - will be filled when user drags from adjacent tile
             this.currentPathTiles = [];
             
-            logger.info('Path started from click', {
-              startTile: { x: startTile.x, y: startTile.y, isPlayerGrid: startTile.isPlayerGrid },
+            logger.info('Aiming mode ready - path will start when dragging from adjacent tile', {
+              launcherId: clickedLauncher.id,
+              launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
+              clickPosition: { gridX, gridY, isPlayerGrid },
               pathLength: this.currentPathTiles.length,
               isDrawingPath: this.isDrawingPath,
               aimingMode: this.aimingMode
