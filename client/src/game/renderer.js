@@ -710,7 +710,11 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   // Check if a tile is within launcher bounds
-  isTileInLauncherArea(tileX, tileY, launcher) {
+  // IMPORTANT: Launcher is always in player grid, so tile must also be in player grid
+  isTileInLauncherArea(tileX, tileY, launcher, isPlayerGrid = true) {
+    // Launcher is always in player grid - if tile is in enemy grid, it cannot be in launcher area
+    if (!isPlayerGrid) return false;
+    
     const launcherConfig = this.config.launchers.find(c => c.id === launcher.type);
     if (!launcherConfig) return false;
     
@@ -1152,7 +1156,8 @@ export class GameRenderer extends Phaser.Scene {
     const newTile = { x: gridX, y: gridY, isPlayerGrid };
     
     // Check if new tile is inside launcher area
-    if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
+    // IMPORTANT: Launcher is always in player grid, so only check if tile is in player grid
+    if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots, isPlayerGrid)) {
       // If path exists and user drags into launcher area, clear the path
       // Shooting always starts from a tile adjacent to launcher, not from inside launcher
       if (this.currentPathTiles && this.currentPathTiles.length > 0) {
@@ -1201,7 +1206,8 @@ export class GameRenderer extends Phaser.Scene {
       }
       
       // Check if this tile is adjacent to launcher (outside launcher area)
-      if (this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
+      // IMPORTANT: Launcher is always in player grid, so only check if tile is in player grid
+      if (this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots, isPlayerGrid)) {
         logger.info('Cannot start path from inside launcher area', {
           tile: { x: gridX, y: gridY },
           launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
