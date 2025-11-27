@@ -990,7 +990,18 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattlePointerUp(pointer) {
-    if (!this.aimingMode) return;
+    logger.info('Battle pointer up', {
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      aimingMode: this.aimingMode,
+      isDrawingPath: this.isDrawingPath,
+      currentPathLength: this.currentPathTiles?.length || 0
+    });
+    
+    if (!this.aimingMode) {
+      logger.info('Pointer up but not in aiming mode');
+      return;
+    }
     
     this.isDrawingPath = false;
     
@@ -999,12 +1010,19 @@ export class GameRenderer extends Phaser.Scene {
     
     // Path drawing complete - enable FIRE button if path is valid
     if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
+      logger.info('Path complete, enabling FIRE button', {
+        pathLength: this.currentPathTiles.length,
+        path: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+      });
       if (this.fireButton) {
         this.fireButton.setAlpha(1.0);
         this.fireButton.setFillStyle(0xff0000);
         this.fireButtonText.setAlpha(1.0);
       }
     } else {
+      logger.info('Path too short, disabling FIRE button', {
+        pathLength: this.currentPathTiles?.length || 0
+      });
       // Path too short - disable FIRE button
       if (this.fireButton) {
         this.fireButton.setAlpha(0.5);
