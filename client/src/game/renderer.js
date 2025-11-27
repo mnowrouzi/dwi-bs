@@ -1432,6 +1432,8 @@ export class GameRenderer extends Phaser.Scene {
     if (this.pathHighlightGraphics) {
       this.pathHighlightGraphics.clear();
     }
+    // Clear launcher highlight
+    this.clearLauncherHighlight();
     
     // Disable FIRE button after firing (keep visible but disabled)
     if (this.fireButton) {
@@ -1484,6 +1486,8 @@ export class GameRenderer extends Phaser.Scene {
     if (this.pathHighlightGraphics) {
       this.pathHighlightGraphics.clear();
     }
+    // Clear launcher highlight on turn change
+    this.clearLauncherHighlight();
     
         // Disable FIRE button when not in aiming mode (keep visible in battle phase)
         if (this.fireButton && this.currentPhase === GAME_PHASES.BATTLE) {
