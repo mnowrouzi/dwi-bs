@@ -237,9 +237,10 @@ const styles = {
   },
   notifications: {
     position: 'absolute',
-    top: '60px',
-    right: '10px',
+    bottom: '20px',
+    left: '20px',
     zIndex: 1001,
+    maxWidth: '400px',
   },
   notification: {
     padding: '0.8rem 1.2rem',

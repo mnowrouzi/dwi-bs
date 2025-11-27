@@ -1,6 +1,7 @@
 {
   "gridSize": 10,
-  "budget": 10,
+  "buildBudget": 10,
+  "shotBudget": 5,
   "mana": {
     "startMana": 2,
     "maxMana": 10,

@@ -57,8 +57,8 @@ export class UnitPlacement {
       return;
     }
     
-    if (this.scene.budget < launcherConfig.cost) {
-      this.scene.onNotification('بودجه کافی نیست');
+    if (this.scene.buildBudget < launcherConfig.cost) {
+      this.scene.onNotification('بودجه ساخت کافی نیست');
       return;
     }
     
@@ -80,9 +80,9 @@ export class UnitPlacement {
     });
     
     // Update budget locally
-    this.scene.budget -= launcherConfig.cost;
+    this.scene.buildBudget -= launcherConfig.cost;
     if (this.scene.budgetText) {
-      this.scene.budgetText.setText(`${this.scene.budgetText.text.split(':')[0]}: ${this.scene.budget}`);
+      this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
     }
     
     // Send to server
@@ -113,8 +113,8 @@ export class UnitPlacement {
       return;
     }
     
-    if (this.scene.budget < defenseConfig.cost) {
-      this.scene.onNotification('بودجه کافی نیست');
+    if (this.scene.buildBudget < defenseConfig.cost) {
+      this.scene.onNotification('بودجه ساخت کافی نیست');
       return;
     }
     
@@ -138,9 +138,9 @@ export class UnitPlacement {
     });
     
     // Update budget locally
-    this.scene.budget -= defenseConfig.cost;
+    this.scene.buildBudget -= defenseConfig.cost;
     if (this.scene.budgetText) {
-      this.scene.budgetText.setText(`${this.scene.budgetText.text.split(':')[0]}: ${this.scene.budget}`);
+      this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
     }
     
     // Send to server

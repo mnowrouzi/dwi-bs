@@ -127,7 +127,7 @@ function handlePlaceUnits(ws, data) {
       type: MESSAGE_TYPES.BUILD_PHASE_STATE,
       playerId,
       units: result.units,
-      budget: result.remainingBudget
+      buildBudget: result.remainingBudget
     }));
   } else {
     ws.send(JSON.stringify({

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import faTexts from '../i18n/fa.json';
 import logger from '@shared/logger.js';
+import { MESSAGE_TYPES } from '@shared/types.js';
 
 const API_URL = 'http://localhost:3000';
 const WS_URL = 'ws://localhost:3000';
@@ -19,14 +20,14 @@ export default function MenuFA({ onStartGame }) {
       ws.onopen = () => {
         logger.websocket('WebSocket connected');
         ws.send(JSON.stringify({
-          type: 'createRoom'
+          type: MESSAGE_TYPES.CREATE_ROOM
         }));
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         logger.websocket('Received message:', data.type);
-        if (data.type === 'roomUpdate') {
+        if (data.type === MESSAGE_TYPES.ROOM_UPDATE) {
           logger.info(`Room created: ${data.roomId}, Player: ${data.playerId}`);
           onStartGame(data.roomId, data.playerId, ws);
         }
@@ -57,7 +58,7 @@ export default function MenuFA({ onStartGame }) {
       ws.onopen = () => {
         logger.websocket('WebSocket connected');
         ws.send(JSON.stringify({
-          type: 'joinRoom',
+          type: MESSAGE_TYPES.JOIN_ROOM,
           roomId: roomId.trim()
         }));
       };
@@ -65,12 +66,12 @@ export default function MenuFA({ onStartGame }) {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         logger.websocket('Received message:', data.type);
-        if (data.type === 'roomUpdate') {
+        if (data.type === MESSAGE_TYPES.ROOM_UPDATE) {
           logger.info(`Joined room: ${data.roomId}, Player: player2`);
           onStartGame(data.roomId, 'player2', ws);
-        } else if (data.type === 'error') {
+        } else if (data.type === MESSAGE_TYPES.ERROR) {
           logger.error('Join room error:', data.message);
-          alert(data.message);
+          alert(data.message || 'روم پیدا نشد');
           setIsJoining(false);
         }
       };

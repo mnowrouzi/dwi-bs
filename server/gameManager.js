@@ -47,7 +47,7 @@ export class GameManager {
     this.broadcast({
       type: MESSAGE_TYPES.BUILD_PHASE_STATE,
       phase: GAME_PHASES.BUILD,
-      budget: this.config.budget,
+      buildBudget: this.config.buildBudget,
       gridSize: this.config.gridSize
     });
   }
@@ -101,7 +101,7 @@ export class GameManager {
       }
     }
 
-    if (totalCost > player.budget) {
+    if (totalCost > player.buildBudget) {
       return { success: false, error: 'Insufficient budget' };
     }
 
@@ -125,12 +125,12 @@ export class GameManager {
     // Place units
     player.units.launchers = placedUnits.launchers;
     player.units.defenses = placedUnits.defenses;
-    player.budget -= totalCost;
+    player.buildBudget -= totalCost;
 
     return {
       success: true,
       units: placedUnits,
-      remainingBudget: player.budget
+      remainingBudget: player.buildBudget
     };
   }
 

@@ -32,8 +32,9 @@ export class GameRenderer extends Phaser.Scene {
     this.playerUnits = { launchers: [], defenses: [] };
     this.opponentUnits = { launchers: [], defenses: [] };
     this.currentPhase = GAME_PHASES.BUILD;
-    // Use budget from config (not hardcoded)
-    this.budget = this.config.budget || 50;
+    // Use budgets from config
+    this.buildBudget = this.config.buildBudget || 10;
+    this.shotBudget = this.config.shotBudget || 5;
     this.mana = this.config.mana.startMana;
     logger.info('Budget initialized from config', { budget: this.budget, configBudget: this.config.budget });
     this.shotsThisTurn = 0;
@@ -259,8 +260,10 @@ export class GameRenderer extends Phaser.Scene {
     // Mana bar
     this.manaBar = new ManaBar(this, 50, 50, this.config);
     
-    // Budget display
-    this.budgetText = this.add.text(50, 100, `${faTexts.game.budget}: ${this.budget}`, {
+    // Budget display (build budget in build phase, shot budget in battle phase)
+    const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'بودجه شلیک';
+    const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : this.shotBudget;
+    this.budgetText = this.add.text(50, 100, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#fff',
       fontFamily: 'Vazirmatn, Tahoma'
@@ -304,7 +307,7 @@ export class GameRenderer extends Phaser.Scene {
     this.launcherButtons = [];
     this.config.launchers.forEach((launcher, index) => {
       const btnX = panelX + (index % 2) * buttonSpacing;
-      const btnY = panelY + 40 + Math.floor(index / 2) * (buttonHeight + 15); // More space from label
+      const btnY = panelY + 60 + Math.floor(index / 2) * (buttonHeight + 15); // More space from label (60 instead of 40)
       
       const btn = this.add.rectangle(
         btnX,
@@ -349,7 +352,7 @@ export class GameRenderer extends Phaser.Scene {
     });
     
     // Defenses section (positioned below launchers)
-    const defensesStartY = panelY + 40 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 40;
+    const defensesStartY = panelY + 60 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 50;
     
     const defenseLabel = this.add.text(panelX, defensesStartY, faTexts.units.defense, {
       fontSize: '18px',
@@ -361,7 +364,7 @@ export class GameRenderer extends Phaser.Scene {
     this.defenseButtons = [];
     this.config.defenses.forEach((defense, index) => {
       const btnX = panelX + (index % 2) * buttonSpacing;
-      const btnY = defensesStartY + 40 + Math.floor(index / 2) * (buttonHeight + 15);
+      const btnY = defensesStartY + 60 + Math.floor(index / 2) * (buttonHeight + 15); // More space from label
       
       const btn = this.add.rectangle(
         btnX,
@@ -566,12 +569,12 @@ export class GameRenderer extends Phaser.Scene {
 
   handleBuildPhaseState(data) {
     // Update budget from server (which uses config)
-    if (data.budget !== undefined) {
-      this.budget = data.budget;
+    if (data.buildBudget !== undefined) {
+      this.buildBudget = data.buildBudget;
       if (this.budgetText) {
-        this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
+        this.budgetText.setText(`بودجه ساخت: ${this.buildBudget}`);
       }
-      logger.info('Budget updated from server', { budget: this.budget, serverBudget: data.budget, configBudget: this.config?.budget });
+      logger.info('Build budget updated from server', { buildBudget: this.buildBudget, serverBudget: data.buildBudget });
     }
     
     if (data.units) {
