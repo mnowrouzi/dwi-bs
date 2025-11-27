@@ -178,7 +178,30 @@ export class GameManager {
     return true;
   }
 
+  // Check if all players have at least one launcher
+  allPlayersHaveLaunchers() {
+    for (const [playerId, player] of this.players.entries()) {
+      const launchers = player.units.launchers || [];
+      const aliveLaunchers = launchers.filter(l => !l.destroyed);
+      if (aliveLaunchers.length === 0) {
+        logger.room(this.roomId, `Player ${playerId} has no launchers`);
+        return false;
+      }
+    }
+    return true;
+  }
+
   startBattlePhase() {
+    // Check if all players have at least one launcher before starting battle
+    if (!this.allPlayersHaveLaunchers()) {
+      logger.room(this.roomId, 'Cannot start battle phase - not all players have launchers');
+      this.broadcast({
+        type: MESSAGE_TYPES.ERROR,
+        message: 'همه بازیکنان باید حداقل یک موشک‌انداز در زمین داشته باشند'
+      });
+      return;
+    }
+    
     this.phase = GAME_PHASES.BATTLE;
     this.currentTurn = 'player1';
     logger.room(this.roomId, 'Battle phase started');
