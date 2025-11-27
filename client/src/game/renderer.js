@@ -32,8 +32,10 @@ export class GameRenderer extends Phaser.Scene {
     this.playerUnits = { launchers: [], defenses: [] };
     this.opponentUnits = { launchers: [], defenses: [] };
     this.currentPhase = GAME_PHASES.BUILD;
-    this.budget = this.config.budget;
+    // Use budget from config (not hardcoded)
+    this.budget = this.config.budget || 50;
     this.mana = this.config.mana.startMana;
+    logger.info('Budget initialized from config', { budget: this.budget, configBudget: this.config.budget });
     this.shotsThisTurn = 0;
     this.currentTurn = null;
     this.selectedLauncher = null;
@@ -201,7 +203,27 @@ export class GameRenderer extends Phaser.Scene {
 
   drawGrid(graphics, x, y, size, tileSize, color) {
     graphics.clear();
-    graphics.lineStyle(1, color, 0.3);
+    
+    // Draw grid background (darker)
+    graphics.fillStyle(0x0a0d0f, 1);
+    graphics.fillRect(x, y, size * tileSize, size * tileSize);
+    
+    // Draw alternating tiles for checkerboard pattern
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        const isEven = (row + col) % 2 === 0;
+        graphics.fillStyle(isEven ? 0x1c1f22 : 0x252a2e, 1);
+        graphics.fillRect(
+          x + col * tileSize,
+          y + row * tileSize,
+          tileSize,
+          tileSize
+        );
+      }
+    }
+    
+    // Draw grid lines (more visible)
+    graphics.lineStyle(2, color, 0.8);
     
     for (let i = 0; i <= size; i++) {
       // Vertical lines
@@ -213,18 +235,9 @@ export class GameRenderer extends Phaser.Scene {
       graphics.lineTo(x + size * tileSize, y + i * tileSize);
     }
     
-    // Fill tiles with semi-realistic look
-    graphics.fillStyle(0x1c1f22, 0.5);
-    for (let row = 0; row < size; row++) {
-      for (let col = 0; col < size; col++) {
-        graphics.fillRect(
-          x + col * tileSize + 1,
-          y + row * tileSize + 1,
-          tileSize - 2,
-          tileSize - 2
-        );
-      }
-    }
+    // Add subtle border
+    graphics.lineStyle(3, color, 1);
+    graphics.strokeRect(x, y, size * tileSize, size * tileSize);
   }
 
   setupUI() {
@@ -250,43 +263,59 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   setupUnitPanel() {
-    const panelX = 50;
-    const panelY = 200;
+    // Position panel on the right side to avoid overlap with grid
+    const panelX = 1000; // Right side
+    const panelY = 100;
+    const buttonSpacing = 90; // More space between buttons
+    const buttonWidth = 80;
+    const buttonHeight = 70;
     
-    // Launchers
+    // Launchers section
     this.add.text(panelX, panelY, faTexts.units.launcher, {
-      fontSize: '16px',
+      fontSize: '18px',
       color: '#ffd700',
-      fontFamily: 'Vazirmatn, Tahoma'
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
     });
     
     this.launcherButtons = [];
     this.config.launchers.forEach((launcher, index) => {
+      const btnX = panelX + (index % 2) * buttonSpacing;
+      const btnY = panelY + 35 + Math.floor(index / 2) * (buttonHeight + 10);
+      
       const btn = this.add.rectangle(
-        panelX + index * 80,
-        panelY + 30,
-        70,
-        60,
+        btnX,
+        btnY,
+        buttonWidth,
+        buttonHeight,
         0x3f5765
       )
       .setInteractive({ useHandCursor: true })
+      .setStrokeStyle(2, 0x5a7a8a)
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectLauncherType(launcher.id);
         } else if (this.currentPhase === GAME_PHASES.BATTLE) {
           this.selectLauncherForShot(launcher.id);
         }
+      })
+      .on('pointerover', () => {
+        btn.setFillStyle(0x4a6a7a);
+      })
+      .on('pointerout', () => {
+        btn.setFillStyle(0x3f5765);
       });
       
-      this.add.text(btn.x, btn.y - 10, launcher.titleFA, {
-        fontSize: '10px',
+      this.add.text(btnX, btnY - 15, launcher.titleFA, {
+        fontSize: '11px',
         color: '#fff',
         fontFamily: 'Vazirmatn, Tahoma',
-        wordWrap: { width: 60 }
+        wordWrap: { width: 70 },
+        align: 'center'
       }).setOrigin(0.5);
       
-      this.add.text(btn.x, btn.y + 15, `💰${launcher.cost}`, {
-        fontSize: '12px',
+      this.add.text(btnX, btnY + 20, `💰${launcher.cost}`, {
+        fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
       }).setOrigin(0.5);
@@ -294,38 +323,52 @@ export class GameRenderer extends Phaser.Scene {
       this.launcherButtons.push(btn);
     });
     
-    // Defenses
-    this.add.text(panelX, panelY + 100, faTexts.units.defense, {
-      fontSize: '16px',
+    // Defenses section (positioned below launchers)
+    const defensesStartY = panelY + 35 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 10) + 30;
+    
+    this.add.text(panelX, defensesStartY, faTexts.units.defense, {
+      fontSize: '18px',
       color: '#ffd700',
-      fontFamily: 'Vazirmatn, Tahoma'
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
     });
     
     this.defenseButtons = [];
     this.config.defenses.forEach((defense, index) => {
+      const btnX = panelX + (index % 2) * buttonSpacing;
+      const btnY = defensesStartY + 35 + Math.floor(index / 2) * (buttonHeight + 10);
+      
       const btn = this.add.rectangle(
-        panelX + index * 80,
-        panelY + 130,
-        70,
-        60,
+        btnX,
+        btnY,
+        buttonWidth,
+        buttonHeight,
         0x3f5765
       )
       .setInteractive({ useHandCursor: true })
+      .setStrokeStyle(2, 0x5a7a8a)
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectDefenseType(defense.id);
         }
+      })
+      .on('pointerover', () => {
+        btn.setFillStyle(0x4a6a7a);
+      })
+      .on('pointerout', () => {
+        btn.setFillStyle(0x3f5765);
       });
       
-      this.add.text(btn.x, btn.y - 10, defense.titleFA, {
-        fontSize: '10px',
+      this.add.text(btnX, btnY - 15, defense.titleFA, {
+        fontSize: '11px',
         color: '#fff',
         fontFamily: 'Vazirmatn, Tahoma',
-        wordWrap: { width: 60 }
+        wordWrap: { width: 70 },
+        align: 'center'
       }).setOrigin(0.5);
       
-      this.add.text(btn.x, btn.y + 15, `💰${defense.cost}`, {
-        fontSize: '12px',
+      this.add.text(btnX, btnY + 20, `💰${defense.cost}`, {
+        fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
       }).setOrigin(0.5);
@@ -333,19 +376,28 @@ export class GameRenderer extends Phaser.Scene {
       this.defenseButtons.push(btn);
     });
     
-    // Ready button
-    this.readyButton = this.add.rectangle(panelX, panelY + 200, 150, 40, 0x2b3a42)
+    // Ready button (positioned at bottom)
+    const readyButtonY = defensesStartY + 35 + Math.ceil(this.config.defenses.length / 2) * (buttonHeight + 10) + 30;
+    this.readyButton = this.add.rectangle(panelX, readyButtonY, 150, 45, 0x2b3a42)
       .setInteractive({ useHandCursor: true })
+      .setStrokeStyle(2, 0xffd700)
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.sendReady();
         }
+      })
+      .on('pointerover', () => {
+        this.readyButton.setFillStyle(0x3a4a5a);
+      })
+      .on('pointerout', () => {
+        this.readyButton.setFillStyle(0x2b3a42);
       });
     
     this.add.text(this.readyButton.x, this.readyButton.y, faTexts.buttons.ready, {
-      fontSize: '16px',
-      color: '#fff',
-      fontFamily: 'Vazirmatn, Tahoma'
+      fontSize: '18px',
+      color: '#ffd700',
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
     }).setOrigin(0.5);
   }
 
@@ -474,8 +526,14 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleBuildPhaseState(data) {
-    this.budget = data.budget;
-    this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
+    // Update budget from server (which uses config)
+    if (data.budget !== undefined) {
+      this.budget = data.budget;
+      if (this.budgetText) {
+        this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
+      }
+      logger.info('Budget updated from server', { budget: this.budget });
+    }
     
     if (data.units) {
       this.playerUnits = data.units;

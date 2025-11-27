@@ -83,7 +83,7 @@ export default function GameScene({ gameState, onBackToMenu }) {
       width: 1200,
       height: 800,
       parent: gameRef.current,
-      backgroundColor: '#1c1f22',
+      backgroundColor: '#0a0d0f', // Match container background
       scene: GameRenderer,
       physics: {
         default: 'arcade',
@@ -203,7 +203,8 @@ const styles = {
     width: '100vw',
     height: '100vh',
     position: 'relative',
-    background: '#1c1f22',
+    background: '#0a0d0f', // Darker background
+    overflow: 'hidden',
   },
   hud: {
     position: 'absolute',
