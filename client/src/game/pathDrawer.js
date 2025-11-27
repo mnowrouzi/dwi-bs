@@ -1,5 +1,5 @@
-import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '../../../shared/constants.js';
-import { isAdjacent } from '../../../shared/utils.js';
+import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '@shared/constants.js';
+import { isAdjacent } from '@shared/utils.js';
 
 export class PathDrawer {
   constructor(scene) {

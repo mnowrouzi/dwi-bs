@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import faTexts from '../i18n/fa.json';
-import logger from '../../shared/logger.js';
+import logger from '@shared/logger.js';
 
 const API_URL = 'http://localhost:3000';
 const WS_URL = 'ws://localhost:3000';

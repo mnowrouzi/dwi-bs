@@ -1,4 +1,4 @@
-import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '../../../shared/constants.js';
+import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '@shared/constants.js';
 
 export class Explosion {
   constructor(scene, gridX, gridY) {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '../../../shared/constants.js';
-import { GAME_PHASES, MESSAGE_TYPES } from '../../../shared/types.js';
+import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '@shared/constants.js';
+import { GAME_PHASES, MESSAGE_TYPES } from '@shared/types.js';
 import { PathDrawer } from './pathDrawer.js';
 import { UnitPlacement } from './unitPlacement.js';
 import { ManaBar } from './manaBar.js';

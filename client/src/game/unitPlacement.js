@@ -1,5 +1,5 @@
-import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '../../../shared/constants.js';
-import { MESSAGE_TYPES } from '../../../shared/types.js';
+import { GRID_TILE_SIZE, GRID_OFFSET_X, GRID_OFFSET_Y } from '@shared/constants.js';
+import { MESSAGE_TYPES } from '@shared/types.js';
 
 export class UnitPlacement {
   constructor(scene, config) {

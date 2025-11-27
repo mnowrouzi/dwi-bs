@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { GameRenderer } from '../game/renderer.js';
-import { MESSAGE_TYPES, GAME_PHASES } from '../../../shared/types.js';
+import { MESSAGE_TYPES, GAME_PHASES } from '@shared/types.js';
 import faTexts from '../i18n/fa.json';
-import logger from '../../../shared/logger.js';
+import logger from '@shared/logger.js';
 
 export default function GameScene({ gameState, onBackToMenu }) {
   const gameRef = useRef(null);

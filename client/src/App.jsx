@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MenuFA from './components/MenuFA.jsx';
 import GameScene from './components/GameScene.jsx';
-import { GAME_PHASES } from '../../shared/types.js';
+import { GAME_PHASES } from '@shared/types.js';
 
 function App() {
   const [gameState, setGameState] = useState({
