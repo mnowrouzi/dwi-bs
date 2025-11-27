@@ -1466,10 +1466,30 @@ export class GameRenderer extends Phaser.Scene {
     
     // Path drawing complete - enable FIRE button if path is valid
     if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
+      const finalPathLength = this.currentPathTiles.length;
+      const expectedMaxRange = this.selectedLauncherForShots ? 
+        (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0;
+      
       logger.info('Path complete, enabling FIRE button', {
-        pathLength: this.currentPathTiles.length,
-        path: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+        pathLength: finalPathLength,
+        expectedMaxRange: expectedMaxRange,
+        canAddMore: finalPathLength < expectedMaxRange,
+        path: this.currentPathTiles.map((t, idx) => ({ 
+          index: idx + 1,
+          x: t.x, 
+          y: t.y, 
+          isPlayerGrid: t.isPlayerGrid 
+        }))
       });
+      
+      if (finalPathLength < expectedMaxRange) {
+        logger.warn('⚠️ Path is shorter than max range!', {
+          currentLength: finalPathLength,
+          expectedMax: expectedMaxRange,
+          missing: expectedMaxRange - finalPathLength,
+          launcherType: this.selectedLauncherForShots?.type
+        });
+      }
       if (this.fireButton) {
         this.fireButton.setAlpha(1.0);
         this.fireButton.setFillStyle(0xff0000);
