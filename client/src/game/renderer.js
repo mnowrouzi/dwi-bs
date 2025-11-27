@@ -2174,6 +2174,14 @@ export class GameRenderer extends Phaser.Scene {
       case MESSAGE_TYPES.GAME_OVER:
         this.handleGameOver(data);
         break;
+      
+      case MESSAGE_TYPES.ERROR:
+        if (data.message) {
+          this.onNotification(data.message);
+          this.audioController.playSound('error');
+        }
+        logger.warn('Server error message', { message: data.message });
+        break;
     }
   }
   
