@@ -1124,10 +1124,17 @@ export class GameRenderer extends Phaser.Scene {
     if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
       logger.info('Tile inside launcher area, skipping', {
         tile: { x: gridX, y: gridY },
-        launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
+        launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y },
+        currentPathLength: this.currentPathTiles?.length || 0
       });
       return;
     }
+    
+    logger.info('🔍 Processing tile (not in launcher area)', {
+      tile: { x: gridX, y: gridY, isPlayerGrid },
+      currentPathLength: this.currentPathTiles?.length || 0,
+      hasPath: !!(this.currentPathTiles && this.currentPathTiles.length > 0)
+    });
     
     // If path is empty, check if this tile is adjacent to launcher
     if (!this.currentPathTiles || this.currentPathTiles.length === 0) {
