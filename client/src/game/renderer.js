@@ -772,10 +772,11 @@ export class GameRenderer extends Phaser.Scene {
     
     // If no launcher selected, check if clicking on a launcher
     if (!this.selectedLauncherForShots) {
-      logger.info('Checking for launcher click', {
+      logger.info('=== Checking for launcher click ===', {
         isPlayerGrid,
         gridX,
         gridY,
+        hasPlayerUnits: !!this.playerUnits,
         launchersCount: this.playerUnits?.launchers?.length || 0,
         launchers: this.playerUnits?.launchers?.map(l => ({
           id: l.id,
@@ -786,7 +787,19 @@ export class GameRenderer extends Phaser.Scene {
         })) || []
       });
       
-      if (isPlayerGrid && this.playerUnits && this.playerUnits.launchers) {
+      if (isPlayerGrid) {
+        if (!this.playerUnits) {
+          logger.warn('playerUnits is null or undefined');
+          return;
+        }
+        if (!this.playerUnits.launchers) {
+          logger.warn('playerUnits.launchers is null or undefined');
+          return;
+        }
+        if (this.playerUnits.launchers.length === 0) {
+          logger.warn('No launchers found in playerUnits');
+          return;
+        }
         const clickedLauncher = this.playerUnits.launchers.find(l => {
           if (l.destroyed) {
             logger.info('Launcher destroyed, skipping', { launcherId: l.id });
@@ -813,6 +826,13 @@ export class GameRenderer extends Phaser.Scene {
         });
         
         if (clickedLauncher) {
+          logger.info('=== LAUNCHER FOUND! ===', {
+            launcherId: clickedLauncher.id,
+            launcherType: clickedLauncher.type,
+            launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
+            clickPosition: { gridX, gridY, isPlayerGrid }
+          });
+          
           // Select launcher for shots
           const launcherConfig = this.config.launchers.find(c => c.id === clickedLauncher.type);
           if (launcherConfig) {
