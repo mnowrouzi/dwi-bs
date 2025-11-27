@@ -74,8 +74,19 @@ export default function GameScene({ gameState, onBackToMenu }) {
     }
 
     // Prepare scene data
+    // Log config before passing to scene - deep clone to avoid reference issues
+    logger.info('Preparing scene data with config:', {
+      gridSize: config?.gridSize,
+      buildBudget: config?.buildBudget,
+      launchers: config?.launchers?.map(l => ({
+        id: l.id,
+        cost: l.cost,
+        size: l.size
+      }))
+    });
+    
     const sceneData = {
-      config,
+      config: JSON.parse(JSON.stringify(config)), // Deep clone to avoid reference issues
       gameState,
       onNotification: (msg) => {
         setNotifications(prev => [...prev, { id: Date.now(), message: msg }]);
