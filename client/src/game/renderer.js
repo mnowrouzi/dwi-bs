@@ -182,19 +182,27 @@ export class GameRenderer extends Phaser.Scene {
     this.playerGrid = this.add.graphics();
     this.drawGrid(this.playerGrid, offsetX, offsetY, this.gridSize, tileSize, 0x3f5765);
     
-    // Opponent grid (fog of war)
-    const opponentOffsetX = offsetX + (this.gridSize * tileSize) + 50;
+    // Opponent grid (attached with separator line)
+    const separatorWidth = 4;
+    const opponentOffsetX = offsetX + (this.gridSize * tileSize) + separatorWidth;
     this.opponentGrid = this.add.graphics();
     this.drawGrid(this.opponentGrid, opponentOffsetX, offsetY, this.gridSize, tileSize, 0x2b3a42);
     
+    // Draw separator line between grids
+    const separatorGraphics = this.add.graphics();
+    separatorGraphics.lineStyle(separatorWidth, 0xffd700, 0.8);
+    separatorGraphics.moveTo(offsetX + (this.gridSize * tileSize), offsetY);
+    separatorGraphics.lineTo(offsetX + (this.gridSize * tileSize), offsetY + (this.gridSize * tileSize));
+    separatorGraphics.setDepth(10);
+    
     // Grid labels
-    this.add.text(offsetX + (this.gridSize * tileSize) / 2, offsetY - 30, 'گرید شما', {
+    this.add.text(offsetX + (this.gridSize * tileSize) / 2, offsetY - 30, faTexts.game.playerField, {
       fontSize: '20px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
     }).setOrigin(0.5);
     
-    this.add.text(opponentOffsetX + (this.gridSize * tileSize) / 2, offsetY - 30, 'گرید حریف', {
+    this.add.text(opponentOffsetX + (this.gridSize * tileSize) / 2, offsetY - 30, faTexts.game.opponentField, {
       fontSize: '20px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
@@ -258,6 +266,14 @@ export class GameRenderer extends Phaser.Scene {
       fontFamily: 'Vazirmatn, Tahoma'
     });
     
+    // Remove any leftover explosion sprites from previous renders
+    if (this.explosionSprites) {
+      this.explosionSprites.forEach(sprite => {
+        if (sprite && sprite.active) sprite.destroy();
+      });
+    }
+    this.explosionSprites = [];
+    
     // Unit selection panel
     this.setupUnitPanel();
   }
@@ -265,7 +281,7 @@ export class GameRenderer extends Phaser.Scene {
   setupUnitPanel() {
     // Position panel on the right side to avoid overlap with grid
     const panelX = 1000; // Right side
-    const panelY = 100;
+    const panelY = 150; // More space from top
     const buttonSpacing = 90; // More space between buttons
     const buttonWidth = 80;
     const buttonHeight = 70;
@@ -276,12 +292,12 @@ export class GameRenderer extends Phaser.Scene {
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    });
+    }).setOrigin(0, 0);
     
     this.launcherButtons = [];
     this.config.launchers.forEach((launcher, index) => {
       const btnX = panelX + (index % 2) * buttonSpacing;
-      const btnY = panelY + 35 + Math.floor(index / 2) * (buttonHeight + 10);
+      const btnY = panelY + 40 + Math.floor(index / 2) * (buttonHeight + 15); // More space from label
       
       const btn = this.add.rectangle(
         btnX,
@@ -295,6 +311,7 @@ export class GameRenderer extends Phaser.Scene {
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectLauncherType(launcher.id);
+          logger.info('Launcher selected:', launcher.id);
         } else if (this.currentPhase === GAME_PHASES.BATTLE) {
           this.selectLauncherForShot(launcher.id);
         }
@@ -306,7 +323,7 @@ export class GameRenderer extends Phaser.Scene {
         btn.setFillStyle(0x3f5765);
       });
       
-      this.add.text(btnX, btnY - 15, launcher.titleFA, {
+      this.add.text(btnX, btnY - 20, launcher.titleFA, {
         fontSize: '11px',
         color: '#fff',
         fontFamily: 'Vazirmatn, Tahoma',
@@ -324,19 +341,19 @@ export class GameRenderer extends Phaser.Scene {
     });
     
     // Defenses section (positioned below launchers)
-    const defensesStartY = panelY + 35 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 10) + 30;
+    const defensesStartY = panelY + 40 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 40;
     
     this.add.text(panelX, defensesStartY, faTexts.units.defense, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    });
+    }).setOrigin(0, 0);
     
     this.defenseButtons = [];
     this.config.defenses.forEach((defense, index) => {
       const btnX = panelX + (index % 2) * buttonSpacing;
-      const btnY = defensesStartY + 35 + Math.floor(index / 2) * (buttonHeight + 10);
+      const btnY = defensesStartY + 40 + Math.floor(index / 2) * (buttonHeight + 15);
       
       const btn = this.add.rectangle(
         btnX,
@@ -424,16 +441,27 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleBattleClick(pointer) {
-    if (!this.selectedLauncher) return;
+    if (!this.selectedLauncher) {
+      this.onNotification('لطفاً ابتدا موشک‌انداز را انتخاب کنید');
+      return;
+    }
     
-    // Check both player and opponent grids
+    // Check if click is on UI buttons (right side)
+    if (pointer.x > 950) {
+      return;
+    }
+    
+    // Check both player and opponent grids (now attached)
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    
     let gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
     let gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
     let isPlayerGrid = true;
     
-    // Check opponent grid
-    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + 50;
+    // Check if click is on player grid
     if (gridX < 0 || gridX >= this.gridSize || gridY < 0 || gridY >= this.gridSize) {
+      // Check opponent grid
       gridX = Math.floor((pointer.x - opponentOffsetX) / GRID_TILE_SIZE);
       gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
       isPlayerGrid = false;
@@ -554,15 +582,19 @@ export class GameRenderer extends Phaser.Scene {
     if (data.intercepted) {
       this.onNotification(faTexts.notifications.missileIntercepted);
       this.audioController.playSound('defense_intercept');
-    } else {
-      // Animate missile
-      this.animateMissile(data.pathTiles, () => {
-        // Show explosion
-        const lastTile = data.pathTiles[data.pathTiles.length - 1];
-        this.showExplosion(lastTile.x, lastTile.y);
-        this.audioController.playSound('explosion');
-      });
-    }
+      } else {
+        // Animate missile
+        this.animateMissile(data.pathTiles, () => {
+          // Show explosion
+          const lastTile = data.pathTiles[data.pathTiles.length - 1];
+          // Determine explosion type based on launcher
+          const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
+                          this.opponentUnits.launchers.find(l => l.id === data.launcherId);
+          const explosionType = launcher ? launcher.type : 'default';
+          this.showExplosion(lastTile.x, lastTile.y, explosionType);
+          this.audioController.playSound('explosion');
+        });
+      }
     
     // Update units
     if (data.damage) {
@@ -627,8 +659,8 @@ export class GameRenderer extends Phaser.Scene {
     this.audioController.playSound('launch');
   }
 
-  showExplosion(x, y) {
-    const explosion = new Explosion(this, x, y);
+  showExplosion(x, y, explosionType = 'default') {
+    const explosion = new Explosion(this, x, y, explosionType, this.config);
     explosion.play();
   }
 

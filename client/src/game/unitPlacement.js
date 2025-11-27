@@ -21,6 +21,12 @@ export class UnitPlacement {
   }
 
   handleClick(pointer) {
+    // Check if click is on UI buttons (right side)
+    if (pointer.x > 950) {
+      // Click is on UI panel, ignore
+      return;
+    }
+    
     const gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
     const gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
     
@@ -33,6 +39,9 @@ export class UnitPlacement {
       this.placeLauncher(gridX, gridY);
     } else if (this.selectedDefenseType) {
       this.placeDefense(gridX, gridY);
+    } else {
+      // No unit selected, show message
+      this.scene.onNotification('لطفاً ابتدا نوع واحد را انتخاب کنید');
     }
   }
 

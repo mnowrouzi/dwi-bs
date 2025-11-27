@@ -83,7 +83,12 @@
   "animations": {
     "missileSpeed": 180,
     "pathGlowSpeed": 140,
-    "explosionFrames": 12
+    "explosionFrames": 12,
+    "explosionSprites": [
+      "assets/sprites/explosion_0.gif",
+      "assets/sprites/explosion_1.gif",
+      "assets/sprites/explosion_2.gif"
+    ]
   },
   "sounds": {
     "bgm": "assets/audio/bgm1.mp3",

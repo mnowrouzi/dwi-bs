@@ -18,7 +18,9 @@
     "mana": "مانا",
     "budget": "بودجه",
     "shots": "شلیک‌ها",
-    "turn": "نوبت"
+    "turn": "نوبت",
+    "playerField": "زمین بازی شما",
+    "opponentField": "زمین بازی حریف"
   },
   "units": {
     "launcher": "موشک انداز",

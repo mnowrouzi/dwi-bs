@@ -46,7 +46,8 @@ export class PathDrawer {
     this.pathGraphics.clear();
     this.pathGraphics.lineStyle(3, 0xffd700, 0.8);
     
-    const opponentOffsetX = GRID_OFFSET_X + (this.scene.gridSize * GRID_TILE_SIZE) + 50;
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.scene.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
     for (let i = 0; i < this.currentPath.length - 1; i++) {
       const start = this.currentPath[i];
