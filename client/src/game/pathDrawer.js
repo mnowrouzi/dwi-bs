@@ -18,8 +18,25 @@ export class PathDrawer {
   }
 
   handleMove(pointer) {
-    const gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
-    const gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+    // Check both player and opponent grids
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.scene.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    
+    // Determine which grid the pointer is on
+    let gridX, gridY, isPlayerGrid;
+    if (pointer.x < GRID_OFFSET_X + (this.scene.gridSize * GRID_TILE_SIZE)) {
+      // Player grid
+      gridX = Math.floor((pointer.x - GRID_OFFSET_X) / GRID_TILE_SIZE);
+      gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+      isPlayerGrid = true;
+    } else if (pointer.x >= opponentOffsetX && pointer.x < opponentOffsetX + (this.scene.gridSize * GRID_TILE_SIZE)) {
+      // Opponent grid
+      gridX = Math.floor((pointer.x - opponentOffsetX) / GRID_TILE_SIZE);
+      gridY = Math.floor((pointer.y - GRID_OFFSET_Y) / GRID_TILE_SIZE);
+      isPlayerGrid = false;
+    } else {
+      return; // Outside grids
+    }
     
     if (gridX < 0 || gridX >= this.scene.gridSize || 
         gridY < 0 || gridY >= this.scene.gridSize) {
@@ -27,7 +44,7 @@ export class PathDrawer {
     }
     
     const lastTile = this.currentPath[this.currentPath.length - 1];
-    const newTile = { x: gridX, y: gridY };
+    const newTile = { x: gridX, y: gridY, isPlayerGrid };
     
     // Check if adjacent to last tile
     if (isAdjacent(lastTile.x, lastTile.y, newTile.x, newTile.y)) {

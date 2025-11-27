@@ -571,7 +571,7 @@ export class GameRenderer extends Phaser.Scene {
     });
     
     this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath) {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath && this.selectedLauncher) {
         this.pathDrawer.handleMove(pointer);
       }
     });
@@ -631,13 +631,20 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   selectLauncherForShot(launcherType) {
+    // This method is now used when clicking launcher button - but we prefer clicking on grid
+    // Keep for backward compatibility but prefer grid click
     const launcher = this.playerUnits.launchers.find(l => 
       l.type === launcherType && !l.destroyed
     );
     
     if (launcher) {
-      this.selectedLauncher = launcher;
-      this.onNotification(faTexts.game.selectLauncher);
+      const launcherConfig = this.config.launchers.find(c => c.id === launcherType);
+      if (launcherConfig && this.mana >= launcherConfig.manaCost) {
+        this.selectedLauncher = launcher;
+        this.onNotification(`موشک‌انداز ${launcherConfig.titleFA} انتخاب شد. روی زمین بازی کلیک کنید و drag کنید.`);
+      } else if (launcherConfig) {
+        this.onNotification(`مانا کافی نیست. نیاز به ${launcherConfig.manaCost} مانا دارید.`);
+      }
     }
   }
 
@@ -754,8 +761,9 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Start 30-second timer for build phase only once when both players are connected
-    // Check if we have 2 players (both connected) before starting timer
-    if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer) {
+    // Timer should only start when we receive BUILD_PHASE_STATE after both players are connected
+    // Check if timer hasn't started yet and we're in build phase
+    if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText) {
       // Timer starts when build phase state is received (which means both players are connected)
       this.startBuildPhaseTimer();
     }
@@ -767,9 +775,9 @@ export class GameRenderer extends Phaser.Scene {
       clearTimeout(this.buildPhaseTimer);
     }
     
-    // Start 30-second countdown - position timer to the right of budget text
+    // Start 30-second countdown - position timer below budget text to avoid overlap
     let timeLeft = 30;
-    const timerText = this.add.text(GRID_OFFSET_X + 200, GRID_OFFSET_Y - 60, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
+    this.timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 35, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
       fontSize: '16px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
@@ -780,10 +788,13 @@ export class GameRenderer extends Phaser.Scene {
     const countdown = setInterval(() => {
       timeLeft--;
       if (timeLeft > 0) {
-        timerText.setText(`زمان باقی‌مانده: ${timeLeft} ثانیه`);
+        this.timerText.setText(`زمان باقی‌مانده: ${timeLeft} ثانیه`);
       } else {
         clearInterval(countdown);
-        timerText.destroy();
+        if (this.timerText) {
+          this.timerText.destroy();
+          this.timerText = null;
+        }
         // Auto-send ready if not already ready
         if (!this.isReady) {
           this.sendReady();
