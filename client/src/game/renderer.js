@@ -638,6 +638,7 @@ export class GameRenderer extends Phaser.Scene {
   setupInput() {
     // Build phase - click to place units
     this.input.on('pointerdown', (pointer) => {
+      this.isPointerDown = true; // Track pointer down state
       if (this.currentPhase === GAME_PHASES.BUILD) {
         this.unitPlacement.handleClick(pointer);
       } else if (this.currentPhase === GAME_PHASES.BATTLE) {
@@ -646,25 +647,7 @@ export class GameRenderer extends Phaser.Scene {
     });
     
     // Battle phase - drag for path drawing
-    // Use 'drag' event instead of 'pointermove' for better drag detection
-    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-      logger.info('Drag event detected', {
-        pointerX: pointer.x,
-        pointerY: pointer.y,
-        dragX,
-        dragY,
-        currentPhase: this.currentPhase,
-        aimingMode: this.aimingMode,
-        isDrawingPath: this.isDrawingPath
-      });
-      
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && this.isDrawingPath) {
-        logger.info('Calling handleBattleDrag from drag event');
-        this.handleBattleDrag(pointer);
-      }
-    });
-    
-    // Also listen to pointermove as fallback
+    // Use pointermove with manual tracking
     this.input.on('pointermove', (pointer) => {
       if (this.currentPhase === GAME_PHASES.BATTLE) {
         logger.info('Pointer move in battle phase', {
@@ -672,27 +655,31 @@ export class GameRenderer extends Phaser.Scene {
           pointerY: pointer.y,
           pointerIsDown: pointer.isDown,
           pointerLeftButtonDown: pointer.leftButtonDown(),
+          isPointerDown: this.isPointerDown,
           aimingMode: this.aimingMode,
           isDrawingPath: this.isDrawingPath,
           selectedLauncher: this.selectedLauncherForShots?.id
         });
         
-        if (this.aimingMode && this.isDrawingPath && (pointer.isDown || pointer.leftButtonDown())) {
-          logger.info('Calling handleBattleDrag from pointermove');
+        // Use manual tracking instead of pointer.isDown
+        if (this.aimingMode && this.isDrawingPath && this.isPointerDown) {
+          logger.info('Calling handleBattleDrag from pointermove (manual tracking)');
           this.handleBattleDrag(pointer);
         } else {
           logger.info('Drag not triggered from pointermove', {
             reason: !this.aimingMode ? 'not in aiming mode' : 
                     !this.isDrawingPath ? 'not drawing path' : 
-                    (!pointer.isDown && !pointer.leftButtonDown()) ? 'pointer not down' : 'unknown',
-            pointerIsDown: pointer.isDown,
-            pointerLeftButtonDown: pointer.leftButtonDown()
+                    !this.isPointerDown ? 'pointer not down (manual)' : 'unknown',
+            aimingMode: this.aimingMode,
+            isDrawingPath: this.isDrawingPath,
+            isPointerDown: this.isPointerDown
           });
         }
       }
     });
     
     this.input.on('pointerup', (pointer) => {
+      this.isPointerDown = false; // Reset pointer down state
       if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode) {
         this.handleBattlePointerUp(pointer);
       }
@@ -1185,6 +1172,8 @@ export class GameRenderer extends Phaser.Scene {
       isDrawingPath: this.isDrawingPath,
       currentPathLength: this.currentPathTiles?.length || 0
     });
+    
+    this.isPointerDown = false; // Reset pointer down state
     
     if (!this.aimingMode) {
       logger.info('Pointer up but not in aiming mode');
