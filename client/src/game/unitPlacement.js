@@ -35,6 +35,14 @@ export class UnitPlacement {
       return;
     }
     
+    // Check if clicking on an existing unit (to delete it)
+    const clickedUnit = this.findUnitAt(gridX, gridY);
+    if (clickedUnit) {
+      this.removeUnit(clickedUnit);
+      return;
+    }
+    
+    // Otherwise, place new unit
     if (this.selectedLauncherType) {
       this.placeLauncher(gridX, gridY);
     } else if (this.selectedDefenseType) {
@@ -43,6 +51,67 @@ export class UnitPlacement {
       // No unit selected, show message
       this.scene.onNotification('لطفاً ابتدا نوع واحد را انتخاب کنید');
     }
+  }
+  
+  findUnitAt(x, y) {
+    for (let i = 0; i < this.placedUnits.length; i++) {
+      const unit = this.placedUnits[i];
+      let unitSizeX = 1, unitSizeY = 1;
+      
+      if (unit.type === 'launcher') {
+        const config = this.config.launchers.find(l => l.id === unit.launcherType);
+        if (config) {
+          unitSizeX = config.size[0];
+          unitSizeY = config.size[1];
+        }
+      } else if (unit.type === 'defense') {
+        const config = this.config.defenses.find(d => d.id === unit.defenseType);
+        if (config) {
+          unitSizeX = config.size[0] || 1;
+          unitSizeY = config.size[1] || 1;
+        }
+      }
+      
+      // Check if click is within unit bounds
+      if (x >= unit.x && x < unit.x + unitSizeX &&
+          y >= unit.y && y < unit.y + unitSizeY) {
+        return { index: i, unit };
+      }
+    }
+    return null;
+  }
+  
+  removeUnit({ index, unit }) {
+    // Get cost of unit
+    let cost = 0;
+    if (unit.type === 'launcher') {
+      const config = this.config.launchers.find(l => l.id === unit.launcherType);
+      if (config) cost = config.cost;
+    } else if (unit.type === 'defense') {
+      const config = this.config.defenses.find(d => d.id === unit.defenseType);
+      if (config) cost = config.cost;
+    }
+    
+    // Remove from placed units
+    this.placedUnits.splice(index, 1);
+    
+    // Return budget
+    this.scene.buildBudget += cost;
+    if (this.scene.budgetText) {
+      this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
+    }
+    
+    // Send updated units to server
+    this.scene.gameState.ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.PLACE_UNITS,
+      units: this.placedUnits
+    }));
+    
+    // Re-render
+    this.scene.renderUnits();
+    
+    // Show message
+    this.scene.onNotification('واحد حذف شد و بودجه برگشت');
   }
 
   placeLauncher(x, y) {
