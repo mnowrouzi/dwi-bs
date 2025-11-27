@@ -136,6 +136,9 @@ export default function MenuFA({ onStartGame }) {
         </div>
         
         <div style={styles.version}>نسخه: v{version}</div>
+        {version !== '...' && version !== '0.0.0' && (
+          <div style={styles.versionSubtext}>در حال تست نسخه {version}</div>
+        )}
       </div>
     </div>
   );
@@ -165,12 +168,23 @@ const styles = {
     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
   },
   version: {
-    fontSize: '0.9rem',
+    fontSize: '1rem',
     marginTop: '2rem',
+    marginBottom: '0.5rem',
+    color: '#ffd700',
+    fontFamily: 'Vazirmatn, Tahoma',
+    opacity: 0.9,
+    fontWeight: 'bold',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+  },
+  versionSubtext: {
+    fontSize: '0.85rem',
+    marginTop: '0',
     marginBottom: '0',
     color: '#aaa',
     fontFamily: 'Vazirmatn, Tahoma',
-    opacity: 0.8,
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   button: {
     width: '100%',
