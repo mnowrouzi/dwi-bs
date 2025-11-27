@@ -1107,23 +1107,23 @@ export class GameRenderer extends Phaser.Scene {
         }
       }
       
-      // Check range limit (Manhattan distance from launcher to end of path)
+      // Check range limit (path length, not Manhattan distance)
+      // Range = maximum number of tiles in the path (excluding launcher position)
       let withinRange = true;
       if (this.selectedLauncherForShots) {
         const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type);
         if (launcherConfig && launcherConfig.range) {
-          // Calculate Manhattan distance from launcher position to new tile
-          const launcherX = this.selectedLauncherForShots.x;
-          const launcherY = this.selectedLauncherForShots.y;
-          const distance = Math.abs(newTile.x - launcherX) + Math.abs(newTile.y - launcherY);
-          withinRange = distance <= launcherConfig.range;
+          // Calculate path length after adding this tile
+          const pathLengthAfterAdd = this.currentPathTiles.length + 1;
+          // Range is the maximum number of tiles in the path
+          withinRange = pathLengthAfterAdd <= launcherConfig.range;
           
           if (!withinRange) {
-            logger.info('Tile outside range', {
-              distance,
+            logger.info('Path length exceeds range', {
+              currentPathLength: this.currentPathTiles.length,
+              pathLengthAfterAdd,
               maxRange: launcherConfig.range,
-              launcherPos: { x: launcherX, y: launcherY },
-              newTile: { x: newTile.x, y: newTile.y }
+              launcherType: launcherConfig.id
             });
           }
         }

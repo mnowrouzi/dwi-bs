@@ -24,12 +24,9 @@ export function isValidPath(path, maxRange) {
     }
   }
   
-  // Check range (Manhattan distance from start to end)
-  const start = path[0];
-  const end = path[path.length - 1];
-  const distance = getManhattanDistance(start.x, start.y, end.x, end.y);
-  
-  return distance <= maxRange;
+  // Check range (path length, not Manhattan distance)
+  // Range = maximum number of tiles in the path
+  return path.length <= maxRange;
 }
 
 export function getAOECells(centerX, centerY, aoeWidth, aoeHeight, gridSize) {
