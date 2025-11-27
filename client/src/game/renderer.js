@@ -825,8 +825,20 @@ export class GameRenderer extends Phaser.Scene {
     
     this.isDrawingPath = false;
     
-    // Path drawing complete - no notifications, just keep path visible
-    // Player can review and press FIRE when ready
+    // Path drawing complete - enable FIRE button if path is valid
+    if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
+      if (this.fireButton) {
+        this.fireButton.setAlpha(1.0);
+        this.fireButton.setFillStyle(0xff0000);
+        this.fireButtonText.setAlpha(1.0);
+      }
+    } else {
+      // Path too short - disable FIRE button
+      if (this.fireButton) {
+        this.fireButton.setAlpha(0.5);
+        this.fireButtonText.setAlpha(0.5);
+      }
+    }
   }
   
   hideUnitPanelInBattle() {
@@ -1059,10 +1071,10 @@ export class GameRenderer extends Phaser.Scene {
       this.pathHighlightGraphics.clear();
     }
     
-    // Hide FIRE button after firing
+    // Disable FIRE button after firing (keep visible but disabled)
     if (this.fireButton) {
-      this.fireButton.setVisible(false);
-      this.fireButtonText.setVisible(false);
+      this.fireButton.setAlpha(0.5);
+      this.fireButtonText.setAlpha(0.5);
     }
     
     // Stop timer
@@ -1111,10 +1123,10 @@ export class GameRenderer extends Phaser.Scene {
       this.pathHighlightGraphics.clear();
     }
     
-    // Hide FIRE button when not in aiming mode
-    if (this.fireButton) {
-      this.fireButton.setVisible(false);
-      this.fireButtonText.setVisible(false);
+    // Disable FIRE button when not in aiming mode (keep visible in battle phase)
+    if (this.fireButton && this.currentPhase === GAME_PHASES.BATTLE) {
+      this.fireButton.setAlpha(0.5);
+      this.fireButtonText.setAlpha(0.5);
     }
     
     // Start battle turn timer if it's player's turn
