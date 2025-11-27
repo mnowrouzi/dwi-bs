@@ -7,7 +7,8 @@
     "stop": "./scripts/stop.sh",
     "server": "cd server && npm start",
     "client": "cd client && npm run dev",
-    "bump-version": "node scripts/bump-version.js"
+    "bump-version": "node scripts/bump-version.js",
+    "deploy": "./scripts/deploy.sh"
   },
   "repository": {
     "type": "git",
