@@ -1161,10 +1161,10 @@ export class GameRenderer extends Phaser.Scene {
           clearedPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
         });
         // Clear the path - user must start from a tile adjacent to launcher
+        // IMPORTANT: Don't clear launcher highlight - launcher selection should remain
         this.currentPathTiles = [];
         this.drawPathHighlight();
         this.updateBarootDisplay();
-        this.clearLauncherHighlight(); // Clear highlight to indicate path is reset
         return;
       } else {
         // Path is empty, just skip - cannot start path from inside launcher
@@ -1188,6 +1188,16 @@ export class GameRenderer extends Phaser.Scene {
         return; // No launcher selected
       }
       
+      // IMPORTANT: Path must always start from player grid (launcher is in player grid)
+      // Cannot start path from enemy grid
+      if (!isPlayerGrid) {
+        logger.info('Cannot start path from enemy grid - path must start from player grid adjacent to launcher', {
+          tile: { x: gridX, y: gridY, isPlayerGrid },
+          launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
+        });
+        return;
+      }
+      
       // Check if this tile is adjacent to launcher (outside launcher area)
       if (this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
         logger.info('Cannot start path from inside launcher area', {
@@ -1205,6 +1215,7 @@ export class GameRenderer extends Phaser.Scene {
       const launcher = this.selectedLauncherForShots;
       
       // Check if tile is adjacent to launcher (8 directions)
+      // IMPORTANT: Launcher is always in player grid, so tile must also be in player grid
       const isAdjacentToLauncher = 
         // Right side
         (gridX === launcher.x + sizeX && gridY >= launcher.y && gridY < launcher.y + sizeY) ||
@@ -1222,8 +1233,9 @@ export class GameRenderer extends Phaser.Scene {
       
       if (!isAdjacentToLauncher) {
         logger.info('Tile not adjacent to launcher, cannot start path', {
-          tile: { x: gridX, y: gridY },
-          launcher: { x: launcher.x, y: launcher.y, sizeX, sizeY }
+          tile: { x: gridX, y: gridY, isPlayerGrid },
+          launcher: { x: launcher.x, y: launcher.y, sizeX, sizeY },
+          reason: 'Tile is not adjacent to launcher perimeter'
         });
         return;
       }
