@@ -124,21 +124,24 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   createPlaceholderGraphics() {
-    // Create colored rectangles for units
-    this.add.graphics()
-      .fillStyle(0xffba00)
-      .fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2)
-      .generateTexture('launcher_short', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    // Create colored rectangles for units (textures only, not visible sprites)
+    const shortGraphics = this.add.graphics();
+    shortGraphics.fillStyle(0xffba00);
+    shortGraphics.fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    shortGraphics.generateTexture('launcher_short', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    shortGraphics.destroy(); // Remove graphics object, keep texture
     
-    this.add.graphics()
-      .fillStyle(0xff6600)
-      .fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2)
-      .generateTexture('launcher_medium', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    const mediumGraphics = this.add.graphics();
+    mediumGraphics.fillStyle(0xff6600);
+    mediumGraphics.fillRect(0, 0, GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    mediumGraphics.generateTexture('launcher_medium', GRID_TILE_SIZE, GRID_TILE_SIZE * 2);
+    mediumGraphics.destroy();
     
-    this.add.graphics()
-      .fillStyle(0xff0000)
-      .fillRect(0, 0, GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2)
-      .generateTexture('launcher_long', GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
+    const longGraphics = this.add.graphics();
+    longGraphics.fillStyle(0xff0000);
+    longGraphics.fillRect(0, 0, GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
+    longGraphics.generateTexture('launcher_long', GRID_TILE_SIZE * 2, GRID_TILE_SIZE * 2);
+    longGraphics.destroy();
     
     // Defense units (with size support)
     if (this.config && this.config.defenses) {
@@ -147,29 +150,33 @@ export class GameRenderer extends Phaser.Scene {
         const width = sizeX * GRID_TILE_SIZE;
         const height = sizeY * GRID_TILE_SIZE;
         
-        this.add.graphics()
-          .fillStyle(Phaser.Display.Color.HexStringToColor(defense.color || '#66ccff').color)
-          .fillRect(0, 0, width, height)
-          .lineStyle(2, 0xffffff, 0.5)
-          .strokeRect(0, 0, width, height)
-          .generateTexture(`defense_${defense.id}`, width, height);
+        const defGraphics = this.add.graphics();
+        defGraphics.fillStyle(Phaser.Display.Color.HexStringToColor(defense.color || '#66ccff').color);
+        defGraphics.fillRect(0, 0, width, height);
+        defGraphics.lineStyle(2, 0xffffff, 0.5);
+        defGraphics.strokeRect(0, 0, width, height);
+        defGraphics.generateTexture(`defense_${defense.id}`, width, height);
+        defGraphics.destroy();
       });
     }
     
     // Missile
-    this.add.graphics()
-      .fillStyle(0xffaa00)
-      .fillRect(0, 0, 8, 16)
-      .generateTexture('missile', 8, 16);
+    const missileGraphics = this.add.graphics();
+    missileGraphics.fillStyle(0xffaa00);
+    missileGraphics.fillRect(0, 0, 8, 16);
+    missileGraphics.generateTexture('missile', 8, 16);
+    missileGraphics.destroy();
     
-    // Explosion frames
-    for (let i = 0; i < 12; i++) {
+    // Explosion frames (textures only, not visible)
+    const explosionFrames = this.config?.animations?.explosionFrames || 12;
+    for (let i = 0; i < explosionFrames; i++) {
       const size = 20 + (i * 5);
-      const alpha = 1 - (i / 12);
-      this.add.graphics()
-        .fillStyle(0xff6600, alpha)
-        .fillCircle(size / 2, size / 2, size / 2)
-        .generateTexture(`explosion_${i}`, size, size);
+      const alpha = 1 - (i / explosionFrames);
+      const expGraphics = this.add.graphics();
+      expGraphics.fillStyle(0xff6600, alpha);
+      expGraphics.fillCircle(size / 2, size / 2, size / 2);
+      expGraphics.generateTexture(`explosion_${i}`, size, size);
+      expGraphics.destroy();
     }
   }
 
