@@ -1231,6 +1231,22 @@ export class GameRenderer extends Phaser.Scene {
       t.x === newTile.x && t.y === newTile.y && t.isPlayerGrid === newTile.isPlayerGrid
     );
     
+    // Special case: If dragging back to launcher area, don't truncate path
+    // The first tile (adjacent to launcher) must always remain
+    if (existingIndex < 0 && this.selectedLauncherForShots && 
+        this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
+      logger.info('Dragging back to launcher area - preserving path (first tile must remain)', {
+        tile: { x: gridX, y: gridY },
+        currentPathLength: this.currentPathTiles.length,
+        firstTile: this.currentPathTiles.length > 0 ? { 
+          x: this.currentPathTiles[0].x, 
+          y: this.currentPathTiles[0].y, 
+          isPlayerGrid: this.currentPathTiles[0].isPlayerGrid 
+        } : null
+      });
+      return; // Don't process, preserve the path
+    }
+    
     // Only process backward drag if tile is actually in path AND we're going backward
     // Don't truncate if we're just hovering or if tile is adjacent and new
     if (existingIndex >= 0) {
@@ -1249,9 +1265,23 @@ export class GameRenderer extends Phaser.Scene {
         // Backward drag - reset path to this cell
         // Only truncate if we're actually going backward (not just passing through)
         const distanceFromLast = this.currentPathTiles.length - 1 - existingIndex;
+        
+        // IMPORTANT: Never truncate to before the first tile (index 0)
+        // The first tile is adjacent to launcher and must always remain
+        if (existingIndex === 0) {
+          logger.info('Cannot truncate to before first tile (adjacent to launcher) - preserving first tile', {
+            tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+            existingIndex,
+            pathLength: this.currentPathTiles.length,
+            firstTile: { x: this.currentPathTiles[0].x, y: this.currentPathTiles[0].y, isPlayerGrid: this.currentPathTiles[0].isPlayerGrid }
+          });
+          return; // Don't truncate, preserve the first tile
+        }
+        
         if (distanceFromLast > 1) {
-          // Actually going backward - truncate
-          this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
+          // Actually going backward - truncate (but never to before index 0)
+          const truncateTo = Math.max(1, existingIndex + 1); // At least keep the first tile
+          this.currentPathTiles = this.currentPathTiles.slice(0, truncateTo);
           this.drawPathHighlight();
           this.updateBarootDisplay();
           logger.info('Path truncated by backward drag', { 
@@ -1259,7 +1289,9 @@ export class GameRenderer extends Phaser.Scene {
             truncatedTo: { gridX, gridY, isPlayerGrid },
             existingIndex,
             distanceFromLast,
+            truncateTo,
             lastTileBeforeTruncate: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            firstTilePreserved: { x: this.currentPathTiles[0].x, y: this.currentPathTiles[0].y, isPlayerGrid: this.currentPathTiles[0].isPlayerGrid },
             fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
           });
           return;
