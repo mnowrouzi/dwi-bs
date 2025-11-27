@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import faTexts from '../i18n/fa.json';
 import logger from '@shared/logger.js';
 import { MESSAGE_TYPES } from '@shared/types.js';
@@ -13,7 +13,7 @@ export default function MenuFA({ onStartGame }) {
   const [version, setVersion] = useState('...');
 
   // Load version on mount
-  React.useEffect(() => {
+  useEffect(() => {
     fetch('http://localhost:3000/version')
       .then(res => res.json())
       .then(data => {
