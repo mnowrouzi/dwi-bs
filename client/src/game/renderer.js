@@ -661,18 +661,26 @@ export class GameRenderer extends Phaser.Scene {
           selectedLauncher: this.selectedLauncherForShots?.id
         });
         
-        // Use manual tracking instead of pointer.isDown
-        if (this.aimingMode && this.isDrawingPath && this.isPointerDown) {
-          logger.info('Calling handleBattleDrag from pointermove (manual tracking)');
+        // Allow drawing if in aiming mode and drawing is enabled
+        // Check both manual tracking and Phaser's pointer state
+        const isDragging = this.isPointerDown || pointer.isDown || pointer.leftButtonDown();
+        
+        if (this.aimingMode && this.isDrawingPath && isDragging) {
+          logger.info('Calling handleBattleDrag from pointermove', {
+            isPointerDown: this.isPointerDown,
+            pointerIsDown: pointer.isDown,
+            pointerLeftButtonDown: pointer.leftButtonDown(),
+            isDragging
+          });
           this.handleBattleDrag(pointer);
         } else {
           logger.info('Drag not triggered from pointermove', {
             reason: !this.aimingMode ? 'not in aiming mode' : 
                     !this.isDrawingPath ? 'not drawing path' : 
-                    !this.isPointerDown ? 'pointer not down (manual)' : 'unknown',
+                    !isDragging ? 'pointer not down' : 'unknown',
             aimingMode: this.aimingMode,
             isDrawingPath: this.isDrawingPath,
-            isPointerDown: this.isPointerDown
+            isDragging
           });
         }
       }
