@@ -284,7 +284,7 @@ export class GameManager {
 
     // Update shots
     player.shotsThisTurn++;
-    const launcherShots = player.launcherShotsThisTurn.get(launcherId) || 0;
+    // launcherShots already calculated above, just increment
     player.launcherShotsThisTurn.set(launcherId, launcherShots + 1);
 
     return {
