@@ -986,33 +986,19 @@ export class GameRenderer extends Phaser.Scene {
             // Hide unit panel buttons in battle phase
             this.hideUnitPanelInBattle();
             
-            // Find first adjacent tile outside launcher area
-            const firstTile = this.findFirstAdjacentTile(gridX, gridY, clickedLauncher);
-            
-            if (!firstTile) {
-              logger.warn('Could not find adjacent tile for launcher', {
-                launcherId: clickedLauncher.id,
-                launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
-                clickPosition: { gridX, gridY }
-              });
-              return;
-            }
-            
-            // Don't return - allow drag to continue
+            // Don't start path yet - wait for user to drag from an adjacent tile
+            // Path will start when user drags from a tile adjacent to launcher
             logger.info('Aiming mode activated, ready for drag', {
               launcherId: clickedLauncher.id,
               launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
               clickGridPosition: { gridX, gridY, isPlayerGrid },
-              firstAdjacentTile: firstTile,
               clickScreenPosition: { x: pointer.x, y: pointer.y },
               isDrawingPath: this.isDrawingPath,
               aimingMode: this.aimingMode
             });
             
-            // Start path from first adjacent tile (outside launcher area)
-            const startTile = { x: firstTile.x, y: firstTile.y, isPlayerGrid };
-            this.currentPathTiles = [startTile];
-            this.drawPathHighlight();
+            // Initialize empty path - will be filled when user drags from adjacent tile
+            this.currentPathTiles = [];
             
             logger.info('Path started from click', {
               startTile: { x: startTile.x, y: startTile.y, isPlayerGrid: startTile.isPlayerGrid },
@@ -1141,23 +1127,58 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // If path is empty, start from current tile (should not happen, but handle it)
+    // If path is empty, check if this tile is adjacent to launcher
     if (!this.currentPathTiles || this.currentPathTiles.length === 0) {
-      // Find first adjacent tile if path is empty
-      if (this.selectedLauncherForShots) {
-        const firstTile = this.findFirstAdjacentTile(gridX, gridY, this.selectedLauncherForShots);
-        if (firstTile) {
-          this.currentPathTiles = [{ x: firstTile.x, y: firstTile.y, isPlayerGrid }];
-        } else {
-          this.currentPathTiles = [newTile];
-        }
-      } else {
-        this.currentPathTiles = [newTile];
+      if (!this.selectedLauncherForShots) {
+        return; // No launcher selected
       }
+      
+      // Check if this tile is adjacent to launcher (outside launcher area)
+      if (this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
+        logger.info('Cannot start path from inside launcher area', {
+          tile: { x: gridX, y: gridY },
+          launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
+        });
+        return;
+      }
+      
+      // Check if tile is adjacent to launcher perimeter
+      const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
+      if (!launcherConfig) return;
+      
+      const [sizeX, sizeY] = launcherConfig.size;
+      const launcher = this.selectedLauncherForShots;
+      
+      // Check if tile is adjacent to launcher (8 directions)
+      const isAdjacentToLauncher = 
+        // Right side
+        (gridX === launcher.x + sizeX && gridY >= launcher.y && gridY < launcher.y + sizeY) ||
+        // Left side
+        (gridX === launcher.x - 1 && gridY >= launcher.y && gridY < launcher.y + sizeY) ||
+        // Bottom side
+        (gridY === launcher.y + sizeY && gridX >= launcher.x && gridX < launcher.x + sizeX) ||
+        // Top side
+        (gridY === launcher.y - 1 && gridX >= launcher.x && gridX < launcher.x + sizeX) ||
+        // Corners
+        (gridX === launcher.x - 1 && gridY === launcher.y - 1) ||
+        (gridX === launcher.x + sizeX && gridY === launcher.y - 1) ||
+        (gridX === launcher.x - 1 && gridY === launcher.y + sizeY) ||
+        (gridX === launcher.x + sizeX && gridY === launcher.y + sizeY);
+      
+      if (!isAdjacentToLauncher) {
+        logger.info('Tile not adjacent to launcher, cannot start path', {
+          tile: { x: gridX, y: gridY },
+          launcher: { x: launcher.x, y: launcher.y, sizeX, sizeY }
+        });
+        return;
+      }
+      
+      // Start path from this adjacent tile
+      this.currentPathTiles = [newTile];
       this.drawPathHighlight();
       this.updateBarootDisplay();
-      logger.info('Path started from drag', { 
-        tile: this.currentPathTiles[0],
+      logger.info('Path started from adjacent tile', { 
+        tile: newTile,
         gridX,
         gridY,
         isPlayerGrid
@@ -1194,17 +1215,15 @@ export class GameRenderer extends Phaser.Scene {
                 Math.abs(newTile.y - lastTile.y) <= 1 &&
                 !(newTile.x === lastTile.x && newTile.y === lastTile.y);
       } else {
-        // Different grids: check if they are at the boundary
-        // Player grid to enemy grid: last tile at x=gridSize-1 and new tile at x=0 (same y)
-        // Or last tile at x=0 and new tile at x=gridSize-1 (same y)
+        // Different grids: tiles are adjacent if they are at the boundary between grids
+        // The grids are side by side, so tiles at the right edge of player grid (x=gridSize-1)
+        // are adjacent to tiles at the left edge of enemy grid (x=0) with the same y
         if (lastTile.isPlayerGrid && !newTile.isPlayerGrid) {
-          // From player grid to enemy grid
-          isAdj = (lastTile.x === this.gridSize - 1 && newTile.x === 0 && lastTile.y === newTile.y) ||
-                  (lastTile.y === this.gridSize - 1 && newTile.y === 0 && lastTile.x === newTile.x);
+          // From player grid to enemy grid: right edge of player grid to left edge of enemy grid
+          isAdj = (lastTile.x === this.gridSize - 1 && newTile.x === 0 && lastTile.y === newTile.y);
         } else if (!lastTile.isPlayerGrid && newTile.isPlayerGrid) {
-          // From enemy grid to player grid
-          isAdj = (lastTile.x === 0 && newTile.x === this.gridSize - 1 && lastTile.y === newTile.y) ||
-                  (lastTile.y === 0 && newTile.y === this.gridSize - 1 && lastTile.x === newTile.x);
+          // From enemy grid to player grid: left edge of enemy grid to right edge of player grid
+          isAdj = (lastTile.x === 0 && newTile.x === this.gridSize - 1 && lastTile.y === newTile.y);
         }
       }
       
