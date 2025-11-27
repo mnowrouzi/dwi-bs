@@ -647,8 +647,26 @@ export class GameRenderer extends Phaser.Scene {
     
     // Battle phase - drag for path drawing
     this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && this.isDrawingPath && pointer.isDown) {
-        this.handleBattleDrag(pointer);
+      if (this.currentPhase === GAME_PHASES.BATTLE) {
+        logger.info('Pointer move in battle phase', {
+          pointerX: pointer.x,
+          pointerY: pointer.y,
+          pointerIsDown: pointer.isDown,
+          aimingMode: this.aimingMode,
+          isDrawingPath: this.isDrawingPath,
+          selectedLauncher: this.selectedLauncherForShots?.id
+        });
+        
+        if (this.aimingMode && this.isDrawingPath && pointer.isDown) {
+          logger.info('Calling handleBattleDrag');
+          this.handleBattleDrag(pointer);
+        } else {
+          logger.info('Drag not triggered', {
+            reason: !this.aimingMode ? 'not in aiming mode' : 
+                    !this.isDrawingPath ? 'not drawing path' : 
+                    !pointer.isDown ? 'pointer not down' : 'unknown'
+          });
+        }
       }
     });
     
@@ -750,7 +768,10 @@ export class GameRenderer extends Phaser.Scene {
               launcherId: clickedLauncher.id,
               launcherType: clickedLauncher.type,
               launcherConfig: launcherConfig.titleFA,
-              manaCost: launcherConfig.manaCost
+              manaCost: launcherConfig.manaCost,
+              launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
+              clickPosition: { gridX, gridY, isPlayerGrid },
+              clickScreenPosition: { x: pointer.x, y: pointer.y }
             });
             
             // Check how many shots already planned for this launcher
@@ -797,15 +818,22 @@ export class GameRenderer extends Phaser.Scene {
             // Don't return - allow drag to continue
             logger.info('Aiming mode activated, ready for drag', {
               launcherId: clickedLauncher.id,
-              gridX,
-              gridY,
-              isPlayerGrid
+              launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
+              clickGridPosition: { gridX, gridY, isPlayerGrid },
+              clickScreenPosition: { x: pointer.x, y: pointer.y },
+              isDrawingPath: this.isDrawingPath,
+              aimingMode: this.aimingMode
             });
             
             // Start path from clicked position (can be on launcher or nearby)
             const startTile = { x: gridX, y: gridY, isPlayerGrid };
             this.currentPathTiles = [startTile];
             this.drawPathHighlight();
+            
+            logger.info('Path started from click', {
+              startTile: { x: startTile.x, y: startTile.y, isPlayerGrid: startTile.isPlayerGrid },
+              pathLength: this.currentPathTiles.length
+            });
             
             // Continue to allow drag - don't return here
           }
