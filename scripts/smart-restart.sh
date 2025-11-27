@@ -27,8 +27,14 @@ if echo "$ALL_CHANGED" | grep -qE "(^server/|^shared/|^VERSION|^scripts/|^packag
     NEED_SERVER_RESTART=true
 fi
 
-# Check for client changes
-if echo "$ALL_CHANGED" | grep -qE "(^client/|^shared/)"; then
+# Check for client changes (including version.js)
+if echo "$ALL_CHANGED" | grep -qE "(^client/|^shared/|client/src/version\.js)"; then
+    NEED_CLIENT_RESTART=true
+fi
+
+# Also check if VERSION file changed (affects both)
+if echo "$ALL_CHANGED" | grep -qE "^VERSION"; then
+    NEED_SERVER_RESTART=true
     NEED_CLIENT_RESTART=true
 fi
 
