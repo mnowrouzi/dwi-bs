@@ -732,9 +732,10 @@ export class GameRenderer extends Phaser.Scene {
             
             // Enter aiming mode immediately - no second click needed
             this.selectedLauncherForShots = clickedLauncher;
-            this.currentPathTiles = [];
+            this.currentPathTiles = []; // Start with empty path - will be filled by drag
             this.aimingMode = true;
             this.pathSelectionMode = true;
+            this.isDrawingPath = false; // Will be set to true when drag starts
             
             // Initialize path highlight graphics
             if (!this.pathHighlightGraphics) {
@@ -742,11 +743,10 @@ export class GameRenderer extends Phaser.Scene {
               this.pathHighlightGraphics.setDepth(40);
             }
             
-            // Enable FIRE button in aiming mode (it's already visible in battle phase)
+            // Disable FIRE button until path is drawn (it's already visible in battle phase)
             if (this.fireButton) {
-              this.fireButton.setAlpha(1.0);
-              this.fireButton.setFillStyle(0xff0000);
-              this.fireButtonText.setAlpha(1.0);
+              this.fireButton.setAlpha(0.5);
+              this.fireButtonText.setAlpha(0.5);
             }
             
             // Hide unit panel buttons in battle phase
