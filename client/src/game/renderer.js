@@ -366,12 +366,12 @@ export class GameRenderer extends Phaser.Scene {
     // Mana bar
     this.manaBar = new ManaBar(this, 50, 50, this.config);
     
-    // Budget display - positioned above grid, left side with small spacing
+    // Budget display - positioned above grid, left side with proper margin
     const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'بودجه شلیک';
     const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : this.shotBudget;
-    this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 35, `${budgetLabel}: ${budgetValue}`, {
+    this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
-      color: '#fff',
+      color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
     });
     
