@@ -1216,6 +1216,12 @@ export class GameRenderer extends Phaser.Scene {
         isAdj = (dx === 1 && dy === 0) ||  // Horizontal
                 (dx === 0 && dy === 1) ||   // Vertical
                 (dx === 1 && dy === 1);     // Diagonal
+        
+        logger.info('Same grid adjacency check', {
+          lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+          newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+          dx, dy, isAdj
+        });
       } else {
         // Different grids: tiles are adjacent if they are at the boundary between grids
         // The grids are side by side, so tiles at the right edge of player grid (x=gridSize-1)
@@ -1223,9 +1229,27 @@ export class GameRenderer extends Phaser.Scene {
         if (lastTile.isPlayerGrid && !newTile.isPlayerGrid) {
           // From player grid to enemy grid: right edge of player grid to left edge of enemy grid
           isAdj = (lastTile.x === this.gridSize - 1 && newTile.x === 0 && lastTile.y === newTile.y);
+          logger.info('Player to enemy grid adjacency check', {
+            lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+            isAdj,
+            condition: `lastTile.x (${lastTile.x}) === gridSize-1 (${this.gridSize - 1}) && newTile.x (${newTile.x}) === 0 && lastTile.y (${lastTile.y}) === newTile.y (${newTile.y})`
+          });
         } else if (!lastTile.isPlayerGrid && newTile.isPlayerGrid) {
           // From enemy grid to player grid: left edge of enemy grid to right edge of player grid
           isAdj = (lastTile.x === 0 && newTile.x === this.gridSize - 1 && lastTile.y === newTile.y);
+          logger.info('Enemy to player grid adjacency check', {
+            lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+            isAdj,
+            condition: `lastTile.x (${lastTile.x}) === 0 && newTile.x (${newTile.x}) === gridSize-1 (${this.gridSize - 1}) && lastTile.y (${lastTile.y}) === newTile.y (${newTile.y})`
+          });
+        } else {
+          // Both in enemy grid but different isPlayerGrid flags? Should not happen, but log it
+          logger.warn('Unexpected grid state in adjacency check', {
+            lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid }
+          });
         }
       }
       
