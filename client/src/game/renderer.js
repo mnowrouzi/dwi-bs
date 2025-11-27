@@ -375,14 +375,14 @@ export class GameRenderer extends Phaser.Scene {
     // Mana bar
     this.manaBar = new ManaBar(this, 50, 50, this.config);
     
-    // Budget display - positioned above grid, left side with proper margin
+    // Budget display - positioned above grid, left side with proper margin (fixed position)
     const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'بودجه شلیک';
     const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : this.shotBudget;
     this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
-    });
+    }).setOrigin(0, 0).setDepth(100); // Fixed origin and depth
     
     // Turn indicator
     this.turnText = this.add.text(50, 130, '', {
@@ -424,10 +424,7 @@ export class GameRenderer extends Phaser.Scene {
             return;
           }
           // If path is valid, execute shot
-          this.finishPathSelection();
-          if (this.pendingShots.length > 0) {
-            this.fireAllShots();
-          }
+          this.fireAllShots();
         }
       })
       .on('pointerover', () => {
@@ -507,7 +504,7 @@ export class GameRenderer extends Phaser.Scene {
         }
       });
       
-      this.add.text(btnX, btnY - 20, launcher.titleFA, {
+      const titleText = this.add.text(btnX, btnY - 20, launcher.titleFA, {
         fontSize: '11px',
         color: '#fff',
         fontFamily: 'Vazirmatn, Tahoma',
@@ -516,13 +513,13 @@ export class GameRenderer extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(60); // Above button but below label
       
       // Use cost from config (launcher.cost)
-      this.add.text(btnX, btnY + 20, `💰${launcher.cost}`, {
+      const costText = this.add.text(btnX, btnY + 20, `💰${launcher.cost}`, {
         fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
       }).setOrigin(0.5).setDepth(60);
       
-      this.launcherButtons.push(btn);
+      this.launcherButtons.push({ btn, titleText, costText });
     });
     
     // Store references to hide/show in battle phase
@@ -576,7 +573,7 @@ export class GameRenderer extends Phaser.Scene {
         }
       });
       
-      this.add.text(btnX, btnY - 15, defense.titleFA, {
+      const defenseTitleText = this.add.text(btnX, btnY - 15, defense.titleFA, {
         fontSize: '11px',
         color: '#fff',
         fontFamily: 'Vazirmatn, Tahoma',
@@ -584,13 +581,13 @@ export class GameRenderer extends Phaser.Scene {
         align: 'center'
       }).setOrigin(0.5).setDepth(60);
       
-      this.add.text(btnX, btnY + 20, `💰${defense.cost}`, {
+      const defenseCostText = this.add.text(btnX, btnY + 20, `💰${defense.cost}`, {
         fontSize: '13px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma'
       }).setOrigin(0.5).setDepth(60);
       
-      this.defenseButtons.push(btn);
+      this.defenseButtons.push({ btn, titleText: defenseTitleText, costText: defenseCostText });
     });
     
     // Store references to hide/show in battle phase
@@ -644,13 +641,13 @@ export class GameRenderer extends Phaser.Scene {
     
     // Battle phase - drag for path drawing
     this.input.on('pointermove', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath && pointer.isDown) {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && pointer.isDown && this.isDrawingPath) {
         this.handleBattleDrag(pointer);
       }
     });
     
     this.input.on('pointerup', (pointer) => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.isDrawingPath) {
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode) {
         this.handleBattlePointerUp(pointer);
       }
     });
@@ -664,10 +661,7 @@ export class GameRenderer extends Phaser.Scene {
           return;
         }
         // If path is valid, execute shot
-        this.finishPathSelection();
-        if (this.pendingShots.length > 0) {
-          this.fireAllShots();
-        }
+        this.fireAllShots();
       }
     });
   }
@@ -767,26 +761,14 @@ export class GameRenderer extends Phaser.Scene {
     
     // If in aiming mode, start drag-based path drawing immediately
     if (this.aimingMode && this.selectedLauncherForShots) {
-      // Start drawing path from this tile
+      // Start drawing path from this tile (can start anywhere on grid)
       const startTile = { x: gridX, y: gridY, isPlayerGrid };
       
-      // Check if starting on launcher position
-      const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
-      if (launcherConfig) {
-        const [sizeX, sizeY] = launcherConfig.size;
-        const onLauncher = gridX >= this.selectedLauncherForShots.x && 
-                          gridX < this.selectedLauncherForShots.x + sizeX &&
-                          gridY >= this.selectedLauncherForShots.y && 
-                          gridY < this.selectedLauncherForShots.y + sizeY;
-        
-        if (onLauncher || this.currentPathTiles.length === 0) {
-          // Start new path
-          this.currentPathTiles = [startTile];
-          this.isDrawingPath = true;
-          this.drawPathHighlight();
-          return;
-        }
-      }
+      // Always start new path when clicking in aiming mode
+      this.currentPathTiles = [startTile];
+      this.isDrawingPath = true;
+      this.drawPathHighlight();
+      return;
     }
   }
   
@@ -847,20 +829,28 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   hideUnitPanelInBattle() {
-    // Hide launcher buttons
+    // Hide launcher buttons and their texts
     if (this.launcherButtonsGroup) {
       if (this.launcherButtonsGroup.label) {
         this.launcherButtonsGroup.label.setVisible(false);
       }
-      this.launcherButtonsGroup.buttons.forEach(btn => btn.setVisible(false));
+      this.launcherButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(false);
+        if (buttonData.titleText) buttonData.titleText.setVisible(false);
+        if (buttonData.costText) buttonData.costText.setVisible(false);
+      });
     }
     
-    // Hide defense buttons
+    // Hide defense buttons and their texts
     if (this.defenseButtonsGroup) {
       if (this.defenseButtonsGroup.label) {
         this.defenseButtonsGroup.label.setVisible(false);
       }
-      this.defenseButtonsGroup.buttons.forEach(btn => btn.setVisible(false));
+      this.defenseButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(false);
+        if (buttonData.titleText) buttonData.titleText.setVisible(false);
+        if (buttonData.costText) buttonData.costText.setVisible(false);
+      });
     }
     
     // Hide ready button
@@ -871,20 +861,28 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   showUnitPanelInBuild() {
-    // Show launcher buttons
+    // Show launcher buttons and their texts
     if (this.launcherButtonsGroup) {
       if (this.launcherButtonsGroup.label) {
         this.launcherButtonsGroup.label.setVisible(true);
       }
-      this.launcherButtonsGroup.buttons.forEach(btn => btn.setVisible(true));
+      this.launcherButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(true);
+        if (buttonData.titleText) buttonData.titleText.setVisible(true);
+        if (buttonData.costText) buttonData.costText.setVisible(true);
+      });
     }
     
-    // Show defense buttons
+    // Show defense buttons and their texts
     if (this.defenseButtonsGroup) {
       if (this.defenseButtonsGroup.label) {
         this.defenseButtonsGroup.label.setVisible(true);
       }
-      this.defenseButtonsGroup.buttons.forEach(btn => btn.setVisible(true));
+      this.defenseButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(true);
+        if (buttonData.titleText) buttonData.titleText.setVisible(true);
+        if (buttonData.costText) buttonData.costText.setVisible(true);
+      });
     }
     
     // Show ready button
@@ -942,31 +940,14 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   finishPathSelection() {
+    // Path is ready, but don't add to pending - just keep it ready for fire
+    // The path is already in currentPathTiles, ready to fire
     if (this.currentPathTiles.length < 2) {
-      this.onNotification('مسیر باید حداقل 2 خانه باشد');
-      return;
+      return; // Path too short, do nothing
     }
     
-    // Add to pending shots
-    this.pendingShots.push({
-      launcherId: this.selectedLauncherForShots.id,
-      pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y })) // Remove isPlayerGrid for server
-    });
-    
-    this.onNotification(`مسیر ${this.pendingShots.length} اضافه شد. می‌توانید مسیر دیگری انتخاب کنید یا شلیک کنید.`);
-    
-    // Reset for next path
-    this.selectedLauncherForShots = null;
-    this.currentPathTiles = [];
-    this.pathSelectionMode = false;
-    this.aimingMode = false;
-    this.drawPathHighlight();
-    
-    // Hide FIRE button when not in aiming mode
-    if (this.fireButton) {
-      this.fireButton.setVisible(false);
-      this.fireButtonText.setVisible(false);
-    }
+    // Path is valid and ready - FIRE button will fire it
+    this.isDrawingPath = false;
   }
 
   finishPathDrawing() {
@@ -1040,58 +1021,39 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   fireAllShots() {
-    if (this.pendingShots.length === 0) {
-      this.onNotification('هیچ شلیکی انتخاب نشده است');
-      return;
+    // Fire the current path (only one shot per turn)
+    if (!this.currentPathTiles || this.currentPathTiles.length < 2 || !this.selectedLauncherForShots) {
+      return; // No valid path to fire
     }
     
     // Check if it's player's turn
     if (this.currentTurn !== this.gameState.playerId) {
-      this.onNotification('نوبت شما نیست');
       return;
     }
     
-    // Calculate total mana cost
-    let totalManaCost = 0;
-    for (const shot of this.pendingShots) {
-      const launcher = this.playerUnits.launchers.find(l => l.id === shot.launcherId);
-      if (launcher) {
-        const launcherConfig = this.config.launchers.find(c => c.id === launcher.type);
-        if (launcherConfig) {
-          totalManaCost += launcherConfig.manaCost;
-        }
-      }
-    }
+    // Get launcher config for mana cost
+    const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
+    if (!launcherConfig) return;
     
     // Check if enough mana
-    if (this.mana < totalManaCost) {
-      this.onNotification(`مانا کافی نیست. نیاز به ${totalManaCost} مانا دارید.`);
-      return;
+    if (this.mana < launcherConfig.manaCost) {
+      return; // Not enough mana
     }
     
-    // Check max shots per turn
-    if (this.pendingShots.length > this.config.mana.maxShotsPerTurn) {
-      this.onNotification(`حداکثر ${this.config.mana.maxShotsPerTurn} شلیک در این نوبت امکان‌پذیر است`);
-      return;
-    }
+    // Send the shot
+    this.gameState.ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.REQUEST_SHOT,
+      launcherId: this.selectedLauncherForShots.id,
+      pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
+    }));
     
-    // Send all shots
-    for (const shot of this.pendingShots) {
-      this.gameState.ws.send(JSON.stringify({
-        type: MESSAGE_TYPES.REQUEST_SHOT,
-        launcherId: shot.launcherId,
-        pathTiles: shot.pathTiles
-      }));
-    }
-    
-    const shotsCount = this.pendingShots.length;
-    
-    // Clear pending shots
+    // Clear state
     this.pendingShots = [];
     this.selectedLauncherForShots = null;
     this.currentPathTiles = [];
     this.pathSelectionMode = false;
     this.aimingMode = false;
+    this.isDrawingPath = false;
     if (this.pathHighlightGraphics) {
       this.pathHighlightGraphics.clear();
     }
@@ -1102,7 +1064,8 @@ export class GameRenderer extends Phaser.Scene {
       this.fireButtonText.setVisible(false);
     }
     
-    this.onNotification(`${shotsCount} شلیک ارسال شد`);
+    // Stop timer
+    this.stopBattleTurnTimer();
   }
   
   sendShotRequest() {
@@ -1215,9 +1178,7 @@ export class GameRenderer extends Phaser.Scene {
       this.buildBudget = data.buildBudget;
       if (this.budgetText) {
         this.budgetText.setText(`بودجه ساخت: ${this.buildBudget}`);
-        // Update position if needed
-        this.budgetText.setX(GRID_OFFSET_X);
-        this.budgetText.setY(GRID_OFFSET_Y - 60);
+        // Keep position fixed - don't change it
       }
       logger.info('Build budget updated from server', { buildBudget: this.buildBudget, serverBudget: data.buildBudget });
     }
@@ -1365,23 +1326,27 @@ export class GameRenderer extends Phaser.Scene {
     // Check if there's a valid path ready to fire
     if (this.currentPathTiles && this.currentPathTiles.length >= 2 && this.selectedLauncherForShots) {
       // Auto-fire the current path
-      this.onNotification('زمان تمام شد! شلیک خودکار...');
-      this.finishPathSelection();
-      // Fire immediately
-      if (this.pendingShots.length > 0) {
-        this.fireAllShots();
-      }
+      this.fireAllShots();
     } else {
       // No valid path - do nothing, no mana consumed
-      this.onNotification('زمان تمام شد. هیچ شلیکی انجام نشد.');
       // Clear any partial path
       this.currentPathTiles = [];
       this.selectedLauncherForShots = null;
       this.pathSelectionMode = false;
+      this.aimingMode = false;
+      this.isDrawingPath = false;
       if (this.pathHighlightGraphics) {
         this.pathHighlightGraphics.clear();
       }
-      // Switch turn (server will handle this)
+      // Hide FIRE button
+      if (this.fireButton) {
+        this.fireButton.setVisible(false);
+        this.fireButtonText.setVisible(false);
+      }
+      // Request turn switch from server (end turn without firing)
+      this.gameState.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.END_TURN
+      }));
     }
   }
 

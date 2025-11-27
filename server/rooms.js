@@ -41,6 +41,10 @@ export async function handleWebSocketConnection(ws, data) {
       handleRequestShot(ws, data);
       break;
     
+    case MESSAGE_TYPES.END_TURN:
+      handleEndTurn(ws, data);
+      break;
+    
     default:
       ws.send(JSON.stringify({
         type: MESSAGE_TYPES.ERROR,
@@ -230,6 +234,24 @@ function handleRequestShot(ws, data) {
       reason: result.error
     }));
   }
+}
+
+function handleEndTurn(ws, data) {
+  const roomId = playerToRoom.get(ws);
+  if (!roomId) return;
+  
+  const gameManager = rooms.get(roomId);
+  if (!gameManager) return;
+  
+  const playerId = playerToId.get(ws);
+  
+  // Only allow ending turn if it's the player's turn
+  if (gameManager.currentTurn !== playerId) {
+    return;
+  }
+  
+  // Switch turn without firing
+  gameManager.switchTurn();
 }
 
 function generateRoomId() {

@@ -15,6 +15,7 @@ export const MESSAGE_TYPES = {
   READY: 'ready',
   READY_TO_START: 'readyToStart',
   REQUEST_SHOT: 'requestShot',
+  END_TURN: 'endTurn',
   
   // Server -> Client
   ROOM_UPDATE: 'roomUpdate',
