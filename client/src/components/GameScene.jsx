@@ -26,7 +26,15 @@ export default function GameScene({ gameState, onBackToMenu }) {
         return res.json();
       })
       .then(data => {
-        logger.info('Config loaded successfully');
+        logger.info('Config loaded successfully', {
+          gridSize: data.gridSize,
+          buildBudget: data.buildBudget,
+          launchers: data.launchers?.map(l => ({
+            id: l.id,
+            cost: l.cost,
+            size: l.size
+          }))
+        });
         setConfig(data);
         setIsLoading(false);
       })

@@ -43,6 +43,18 @@ export class GameRenderer extends Phaser.Scene {
     this.onNotification = initData.onNotification || this.onNotification || (() => {});
     this.onPhaseChange = initData.onPhaseChange || this.onPhaseChange || (() => {});
     
+    // Log full config to debug
+    logger.info('Config received in init:', {
+      gridSize: this.config?.gridSize,
+      buildBudget: this.config?.buildBudget,
+      launchers: this.config?.launchers?.map(l => ({
+        id: l.id,
+        cost: l.cost,
+        size: l.size,
+        titleFA: l.titleFA
+      }))
+    });
+    
     this.gridSize = this.config.gridSize;
     this.playerUnits = { launchers: [], defenses: [] };
     this.opponentUnits = { launchers: [], defenses: [] };
@@ -191,6 +203,14 @@ export class GameRenderer extends Phaser.Scene {
     // Use size from config instead of hardcoded values
     // Only create if texture doesn't already exist (to avoid overriding loaded sprites)
     if (this.config && this.config.launchers) {
+      logger.info('Creating placeholder graphics with config:', {
+        launchers: this.config.launchers.map(l => ({
+          id: l.id,
+          size: l.size,
+          cost: l.cost
+        }))
+      });
+      
       this.config.launchers.forEach(launcher => {
         const textureKey = `launcher_${launcher.id}`;
         
@@ -201,6 +221,13 @@ export class GameRenderer extends Phaser.Scene {
           const width = sizeX * GRID_TILE_SIZE;
           const height = sizeY * GRID_TILE_SIZE;
           
+          logger.info(`Creating placeholder for ${textureKey}`, {
+            sizeFromConfig: launcher.size,
+            calculatedSize: [sizeX, sizeY],
+            width,
+            height
+          });
+          
           const graphics = this.add.graphics();
           graphics.fillStyle(Phaser.Display.Color.HexStringToColor(launcher.color || '#ffba00').color);
           graphics.fillRect(0, 0, width, height);
@@ -209,10 +236,15 @@ export class GameRenderer extends Phaser.Scene {
           graphics.generateTexture(textureKey, width, height);
           graphics.destroy();
           
-          logger.debug(`Created placeholder for ${textureKey} with size [${sizeX}, ${sizeY}]`);
+          logger.info(`Created placeholder for ${textureKey} with size [${sizeX}, ${sizeY}]`);
         } else {
           logger.debug(`Texture ${textureKey} already exists, skipping placeholder`);
         }
+      });
+    } else {
+      logger.warn('Cannot create placeholder graphics: config or launchers missing', {
+        hasConfig: !!this.config,
+        hasLaunchers: !!(this.config && this.config.launchers)
       });
     }
     
