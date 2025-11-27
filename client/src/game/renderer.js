@@ -375,14 +375,20 @@ export class GameRenderer extends Phaser.Scene {
     // Mana bar
     this.manaBar = new ManaBar(this, 50, 50, this.config);
     
-    // Budget display - positioned above grid, left side with proper margin (fixed position)
-    const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'بودجه شلیک';
-    const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : this.shotBudget;
+    // Budget/Baroot display - positioned above grid, left side with proper margin (fixed position)
+    // In build phase: show build budget, in battle phase: show baroot amount
+    const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'مقدار باروت';
+    const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : 0;
     this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
     }).setOrigin(0, 0).setDepth(100); // Fixed origin and depth
+    
+    // Hide budget text in battle phase initially (will show when launcher is selected)
+    if (this.currentPhase === GAME_PHASES.BATTLE) {
+      this.budgetText.setVisible(false);
+    }
     
     // Turn indicator
     this.turnText = this.add.text(50, 130, '', {
@@ -715,6 +721,13 @@ export class GameRenderer extends Phaser.Scene {
           // Select launcher for shots
           const launcherConfig = this.config.launchers.find(c => c.id === clickedLauncher.type);
           if (launcherConfig) {
+            logger.info('Launcher clicked in battle phase', {
+              launcherId: clickedLauncher.id,
+              launcherType: clickedLauncher.type,
+              launcherConfig: launcherConfig.titleFA,
+              manaCost: launcherConfig.manaCost
+            });
+            
             // Check how many shots already planned for this launcher
             const shotsForThisLauncher = this.pendingShots.filter(s => s.launcherId === clickedLauncher.id).length;
             const maxShotsPerLauncher = this.config.mana.maxShotsPerLauncherPerTurn || 1;
@@ -742,6 +755,9 @@ export class GameRenderer extends Phaser.Scene {
               this.pathHighlightGraphics = this.add.graphics();
               this.pathHighlightGraphics.setDepth(40);
             }
+            
+            // Show and update baroot amount based on launcher
+            this.updateBarootDisplay(launcherConfig.manaCost);
             
             // Disable FIRE button until path is drawn (it's already visible in battle phase)
             if (this.fireButton) {
@@ -776,6 +792,12 @@ export class GameRenderer extends Phaser.Scene {
   handleBattleDrag(pointer) {
     if (!this.aimingMode || !this.selectedLauncherForShots) return;
     
+    logger.info('Drag in battle phase', {
+      aimingMode: this.aimingMode,
+      selectedLauncher: this.selectedLauncherForShots?.id,
+      pathLength: this.currentPathTiles?.length || 0
+    });
+    
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
@@ -801,6 +823,7 @@ export class GameRenderer extends Phaser.Scene {
       this.currentPathTiles = [newTile];
       this.isDrawingPath = true;
       this.drawPathHighlight();
+      this.updateBarootDisplay(); // Update baroot based on path
       return;
     }
     
@@ -810,6 +833,7 @@ export class GameRenderer extends Phaser.Scene {
       // Backward drag - reset path to this cell
       this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
       this.drawPathHighlight();
+      this.updateBarootDisplay(); // Update baroot based on path
       return;
     }
     
@@ -824,14 +848,44 @@ export class GameRenderer extends Phaser.Scene {
         // Add new adjacent tile
         this.currentPathTiles.push(newTile);
         this.drawPathHighlight();
+        this.updateBarootDisplay(); // Update baroot based on path
       }
     }
+  }
+  
+  updateBarootDisplay(barootAmount = null) {
+    if (this.currentPhase !== GAME_PHASES.BATTLE) return;
+    
+    if (!this.budgetText) return;
+    
+    // If barootAmount is provided (from launcher selection), use it
+    // Otherwise calculate based on current path and selected launcher
+    let baroot = barootAmount;
+    
+    if (baroot === null || baroot === undefined) {
+      // Calculate based on selected launcher and path
+      if (this.selectedLauncherForShots && this.currentPathTiles && this.currentPathTiles.length > 0) {
+        const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
+        if (launcherConfig) {
+          // Use launcher's manaCost as base, can be modified by path length if needed
+          baroot = launcherConfig.manaCost;
+        }
+      } else {
+        baroot = 0;
+      }
+    }
+    
+    this.budgetText.setText(`مقدار باروت: ${baroot}`);
+    this.budgetText.setVisible(true);
   }
   
   handleBattlePointerUp(pointer) {
     if (!this.aimingMode) return;
     
     this.isDrawingPath = false;
+    
+    // Update baroot display based on final path
+    this.updateBarootDisplay();
     
     // Path drawing complete - enable FIRE button if path is valid
     if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
@@ -1131,11 +1185,16 @@ export class GameRenderer extends Phaser.Scene {
       this.pathHighlightGraphics.clear();
     }
     
-    // Disable FIRE button when not in aiming mode (keep visible in battle phase)
-    if (this.fireButton && this.currentPhase === GAME_PHASES.BATTLE) {
-      this.fireButton.setAlpha(0.5);
-      this.fireButtonText.setAlpha(0.5);
-    }
+        // Disable FIRE button when not in aiming mode (keep visible in battle phase)
+        if (this.fireButton && this.currentPhase === GAME_PHASES.BATTLE) {
+          this.fireButton.setAlpha(0.5);
+          this.fireButtonText.setAlpha(0.5);
+        }
+        
+        // Hide baroot display on turn change
+        if (this.budgetText && this.currentPhase === GAME_PHASES.BATTLE) {
+          this.budgetText.setVisible(false);
+        }
     
     // Start battle turn timer if it's player's turn
     if (this.currentTurn === this.gameState.playerId && this.currentPhase === GAME_PHASES.BATTLE) {
@@ -1275,6 +1334,11 @@ export class GameRenderer extends Phaser.Scene {
     if (data.units) {
       this.playerUnits = data.units;
       this.renderUnits(); // Render units in battle phase
+    }
+    
+    // Hide build budget, show baroot display (initially hidden until launcher selected)
+    if (this.budgetText) {
+      this.budgetText.setVisible(false);
     }
     
     // Hide unit panel buttons in battle phase
