@@ -650,16 +650,17 @@ export class GameRenderer extends Phaser.Scene {
     // Use pointermove with manual tracking
     this.input.on('pointermove', (pointer) => {
       if (this.currentPhase === GAME_PHASES.BATTLE) {
-        logger.info('Pointer move in battle phase', {
-          pointerX: pointer.x,
-          pointerY: pointer.y,
-          pointerIsDown: pointer.isDown,
-          pointerLeftButtonDown: pointer.leftButtonDown(),
-          isPointerDown: this.isPointerDown,
-          aimingMode: this.aimingMode,
-          isDrawingPath: this.isDrawingPath,
-          selectedLauncher: this.selectedLauncherForShots?.id
-        });
+        // Disabled: Too verbose - logs every pointer move
+        // logger.info('Pointer move in battle phase', {
+        //   pointerX: pointer.x,
+        //   pointerY: pointer.y,
+        //   pointerIsDown: pointer.isDown,
+        //   pointerLeftButtonDown: pointer.leftButtonDown(),
+        //   isPointerDown: this.isPointerDown,
+        //   aimingMode: this.aimingMode,
+        //   isDrawingPath: this.isDrawingPath,
+        //   selectedLauncher: this.selectedLauncherForShots?.id
+        // });
         
         // Allow drawing if in aiming mode and drawing is enabled
         // Check both manual tracking and Phaser's pointer state
@@ -674,14 +675,15 @@ export class GameRenderer extends Phaser.Scene {
           });
           this.handleBattleDrag(pointer);
         } else {
-          logger.info('Drag not triggered from pointermove', {
-            reason: !this.aimingMode ? 'not in aiming mode' : 
-                    !this.isDrawingPath ? 'not drawing path' : 
-                    !isDragging ? 'pointer not down' : 'unknown',
-            aimingMode: this.aimingMode,
-            isDrawingPath: this.isDrawingPath,
-            isDragging
-          });
+          // Disabled: Too verbose - logs every pointer move when not dragging
+          // logger.info('Drag not triggered from pointermove', {
+          //   reason: !this.aimingMode ? 'not in aiming mode' : 
+          //           !this.isDrawingPath ? 'not drawing path' : 
+          //           !isDragging ? 'pointer not down' : 'unknown',
+          //   aimingMode: this.aimingMode,
+          //   isDrawingPath: this.isDrawingPath,
+          //   isDragging
+          // });
         }
       }
     });
