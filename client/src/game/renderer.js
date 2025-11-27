@@ -7,6 +7,7 @@ import { ManaBar } from './manaBar.js';
 import { Explosion } from './explosion.js';
 import { AudioController } from './audioController.js';
 import faTexts from '../i18n/fa.json';
+import logger from '@shared/logger.js';
 
 export class GameRenderer extends Phaser.Scene {
   constructor() {
