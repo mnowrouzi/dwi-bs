@@ -732,54 +732,45 @@ export class GameRenderer extends Phaser.Scene {
       return { x: clickX, y: clickY };
     }
     
-    // Click is inside launcher, find first adjacent tile
-    // Check all 8 directions around launcher
-    const directions = [
-      { dx: -1, dy: 0 },   // Left
-      { dx: 1, dy: 0 },    // Right
-      { dx: 0, dy: -1 },   // Up
-      { dx: 0, dy: 1 },    // Down
-      { dx: -1, dy: -1 },  // Top-left
-      { dx: 1, dy: -1 },   // Top-right
-      { dx: -1, dy: 1 },   // Bottom-left
-      { dx: 1, dy: 1 }     // Bottom-right
+    // Click is inside launcher, find first adjacent tile outside launcher
+    // Check tiles around launcher perimeter (8 directions)
+    const candidates = [
+      // Right side
+      { x: launcher.x + sizeX, y: launcher.y },
+      { x: launcher.x + sizeX, y: launcher.y + Math.floor(sizeY / 2) },
+      { x: launcher.x + sizeX, y: launcher.y + sizeY - 1 },
+      // Left side
+      { x: launcher.x - 1, y: launcher.y },
+      { x: launcher.x - 1, y: launcher.y + Math.floor(sizeY / 2) },
+      { x: launcher.x - 1, y: launcher.y + sizeY - 1 },
+      // Bottom side
+      { x: launcher.x, y: launcher.y + sizeY },
+      { x: launcher.x + Math.floor(sizeX / 2), y: launcher.y + sizeY },
+      { x: launcher.x + sizeX - 1, y: launcher.y + sizeY },
+      // Top side
+      { x: launcher.x, y: launcher.y - 1 },
+      { x: launcher.x + Math.floor(sizeX / 2), y: launcher.y - 1 },
+      { x: launcher.x + sizeX - 1, y: launcher.y - 1 }
     ];
     
-    // Check tiles adjacent to launcher perimeter
-    for (let y = launcher.y - 1; y <= launcher.y + sizeY; y++) {
-      for (let x = launcher.x - 1; x <= launcher.x + sizeX; x++) {
-        // Skip tiles inside launcher
-        if (x >= launcher.x && x < launcher.x + sizeX &&
-            y >= launcher.y && y < launcher.y + sizeY) {
-          continue;
-        }
-        
-        // Check if this tile is adjacent to launcher perimeter
-        let isAdjacent = false;
-        for (const dir of directions) {
-          const checkX = x + dir.dx;
-          const checkY = y + dir.dy;
-          if (this.isTileInLauncherArea(checkX, checkY, launcher)) {
-            isAdjacent = true;
-            break;
-          }
-        }
-        
-        if (isAdjacent && x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
-          return { x, y };
-        }
+    // Find first valid candidate (within grid bounds and outside launcher)
+    for (const candidate of candidates) {
+      if (candidate.x >= 0 && candidate.x < this.gridSize &&
+          candidate.y >= 0 && candidate.y < this.gridSize &&
+          !this.isTileInLauncherArea(candidate.x, candidate.y, launcher)) {
+        return candidate;
       }
     }
     
     // Fallback: use tile to the right of launcher
     const rightX = launcher.x + sizeX;
-    if (rightX < this.gridSize) {
+    if (rightX < this.gridSize && rightX >= 0) {
       return { x: rightX, y: launcher.y };
     }
     
     // Fallback: use tile below launcher
     const bottomY = launcher.y + sizeY;
-    if (bottomY < this.gridSize) {
+    if (bottomY < this.gridSize && bottomY >= 0) {
       return { x: launcher.x, y: bottomY };
     }
     
