@@ -66,6 +66,7 @@ export class GameManager {
       return { success: false, error: 'Not in build phase' };
     }
 
+    // Calculate total cost of new units
     let totalCost = 0;
     const placedUnits = {
       launchers: [],
@@ -105,8 +106,20 @@ export class GameManager {
       }
     }
 
-    // Check against shared budget
-    if (totalCost > this.sharedBuildBudget) {
+    // Calculate cost of old units (to refund)
+    let oldCost = 0;
+    for (const launcher of player.units.launchers) {
+      oldCost += launcher.config.cost;
+    }
+    for (const defense of player.units.defenses) {
+      oldCost += defense.config.cost;
+    }
+
+    // Refund old units cost and deduct new units cost
+    const costDifference = totalCost - oldCost;
+    
+    // Check if we have enough budget for the difference
+    if (costDifference > this.sharedBuildBudget) {
       return { success: false, error: 'Insufficient budget' };
     }
 
@@ -131,8 +144,8 @@ export class GameManager {
     player.units.launchers = placedUnits.launchers;
     player.units.defenses = placedUnits.defenses;
     
-    // Deduct from shared budget
-    this.sharedBuildBudget -= totalCost;
+    // Update shared budget (refund old, deduct new)
+    this.sharedBuildBudget -= costDifference;
     
     // Broadcast updated budget to all players
     this.broadcast({
