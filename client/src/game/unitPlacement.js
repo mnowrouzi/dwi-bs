@@ -46,8 +46,16 @@ export class UnitPlacement {
   }
 
   placeLauncher(x, y) {
+    if (!this.selectedLauncherType) {
+      this.scene.onNotification('لطفاً ابتدا نوع موشک‌انداز را انتخاب کنید');
+      return;
+    }
+    
     const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherType);
-    if (!launcherConfig) return;
+    if (!launcherConfig) {
+      this.scene.onNotification('نوع موشک‌انداز نامعتبر است');
+      return;
+    }
     
     if (this.scene.budget < launcherConfig.cost) {
       this.scene.onNotification('بودجه کافی نیست');
@@ -59,7 +67,7 @@ export class UnitPlacement {
     const canPlace = this.canPlaceUnit(x, y, sizeX, sizeY);
     
     if (!canPlace) {
-      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد');
+      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
       return;
     }
     
@@ -76,11 +84,22 @@ export class UnitPlacement {
       type: MESSAGE_TYPES.PLACE_UNITS,
       units: this.placedUnits
     }));
+    
+    // Clear selection after placing
+    this.selectedLauncherType = null;
   }
 
   placeDefense(x, y) {
+    if (!this.selectedDefenseType) {
+      this.scene.onNotification('لطفاً ابتدا نوع پدافند را انتخاب کنید');
+      return;
+    }
+    
     const defenseConfig = this.config.defenses.find(d => d.id === this.selectedDefenseType);
-    if (!defenseConfig) return;
+    if (!defenseConfig) {
+      this.scene.onNotification('نوع پدافند نامعتبر است');
+      return;
+    }
     
     if (this.scene.budget < defenseConfig.cost) {
       this.scene.onNotification('بودجه کافی نیست');
@@ -94,7 +113,7 @@ export class UnitPlacement {
     const canPlace = this.canPlaceUnit(x, y, sizeX, sizeY);
     
     if (!canPlace) {
-      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد');
+      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
       return;
     }
     
@@ -111,6 +130,9 @@ export class UnitPlacement {
       type: MESSAGE_TYPES.PLACE_UNITS,
       units: this.placedUnits
     }));
+    
+    // Clear selection after placing
+    this.selectedDefenseType = null;
   }
 
   canPlaceUnit(x, y, sizeX, sizeY) {

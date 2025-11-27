@@ -311,7 +311,8 @@ export class GameRenderer extends Phaser.Scene {
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectLauncherType(launcher.id);
-          logger.info('Launcher selected:', launcher.id);
+          logger.info('Launcher selected for placement:', launcher.id);
+          this.onNotification(`موشک‌انداز ${launcher.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         } else if (this.currentPhase === GAME_PHASES.BATTLE) {
           this.selectLauncherForShot(launcher.id);
         }
@@ -367,6 +368,8 @@ export class GameRenderer extends Phaser.Scene {
       .on('pointerdown', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
           this.unitPlacement.selectDefenseType(defense.id);
+          logger.info('Defense selected for placement:', defense.id);
+          this.onNotification(`پدافند ${defense.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         }
       })
       .on('pointerover', () => {
