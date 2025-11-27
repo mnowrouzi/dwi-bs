@@ -65,13 +65,29 @@ export default function GameScene({ gameState, onBackToMenu }) {
       phaserGameRef.current = null;
     }
 
+    // Create scene instance with data BEFORE creating Phaser game
+    const sceneInstance = new GameRenderer();
+    
+    // Initialize scene with data first
+    sceneInstance.init({
+      config,
+      gameState,
+      onNotification: (msg) => {
+        setNotifications(prev => [...prev, { id: Date.now(), message: msg }]);
+        setTimeout(() => {
+          setNotifications(prev => prev.slice(1));
+        }, 3000);
+      },
+      onPhaseChange: setCurrentPhase
+    });
+
     const phaserConfig = {
       type: Phaser.AUTO,
       width: 1200,
       height: 800,
       parent: gameRef.current,
       backgroundColor: '#1c1f22',
-      scene: GameRenderer,
+      scene: sceneInstance, // Use initialized scene instance
       physics: {
         default: 'arcade',
         arcade: { debug: false }
@@ -79,47 +95,19 @@ export default function GameScene({ gameState, onBackToMenu }) {
     };
 
     try {
-      // Create game instance first
+      // Create game instance with pre-initialized scene
       phaserGameRef.current = new Phaser.Game(phaserConfig);
       
-      // Wait for scene to be created, then initialize it
-      const initScene = () => {
-        const scene = phaserGameRef.current?.scene?.scenes?.[0];
-        if (!scene) {
-          logger.debug('Scene not ready yet, retrying...');
-          setTimeout(initScene, 50);
-          return;
+      logger.info('Phaser game initialized successfully');
+
+      // Handle WebSocket messages
+      gameState.ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        logger.websocket(`Received: ${data.type}`, data);
+        if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+          phaserGameRef.current.scene.scenes[0].handleServerMessage(data);
         }
-        
-        logger.info('Initializing scene with config...', { hasConfig: !!config });
-        
-        // Pass game state to scene BEFORE it starts
-        scene.init({
-          config,
-          gameState,
-          onNotification: (msg) => {
-            setNotifications(prev => [...prev, { id: Date.now(), message: msg }]);
-            setTimeout(() => {
-              setNotifications(prev => prev.slice(1));
-            }, 3000);
-          },
-          onPhaseChange: setCurrentPhase
-        });
-
-        // Handle WebSocket messages
-        gameState.ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          logger.websocket(`Received: ${data.type}`, data);
-          if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
-            phaserGameRef.current.scene.scenes[0].handleServerMessage(data);
-          }
-        };
-
-        logger.info('Phaser game initialized successfully');
       };
-      
-      // Start initialization after a short delay to ensure scene is created
-      setTimeout(initScene, 50);
     } catch (error) {
       logger.error('Error initializing Phaser:', error);
       setError('خطا در راه‌اندازی بازی');

@@ -41,11 +41,19 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   preload() {
-    // Check if config is available
+    // Check if config is available (should be set in init)
     if (!this.config) {
-      logger.error('GameRenderer.preload: config is not available yet!');
+      logger.warn('GameRenderer.preload: config is not available yet, waiting...');
+      // Retry after a short delay
+      this.time.delayedCall(100, () => {
+        if (this.config) {
+          this.preload();
+        }
+      });
       return;
     }
+    
+    logger.info('GameRenderer.preload: Creating placeholder graphics...');
     
     // Create placeholder graphics
     this.createPlaceholderGraphics();
@@ -68,11 +76,17 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   create() {
-    // Check if config is available
+    // Check if config is available (should be set in init)
     if (!this.config || !this.gridSize) {
-      logger.error('GameRenderer.create: config or gridSize is not available!', {
+      logger.warn('GameRenderer.create: config or gridSize is not available, waiting...', {
         hasConfig: !!this.config,
         gridSize: this.gridSize
+      });
+      // Retry after a short delay
+      this.time.delayedCall(100, () => {
+        if (this.config && this.gridSize) {
+          this.create();
+        }
       });
       return;
     }
@@ -97,7 +111,9 @@ export class GameRenderer extends Phaser.Scene {
     
     // Start build phase
     this.currentPhase = GAME_PHASES.BUILD;
-    this.onPhaseChange(this.currentPhase);
+    if (this.onPhaseChange) {
+      this.onPhaseChange(this.currentPhase);
+    }
     
     logger.info('GameRenderer.create: Game setup complete');
   }
