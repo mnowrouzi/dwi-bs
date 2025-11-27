@@ -1187,18 +1187,35 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Check if tile is already in path (backward drag - reset to that cell)
-    const existingIndex = this.currentPathTiles.findIndex(t => t.x === newTile.x && t.y === newTile.y);
-    if (existingIndex >= 0 && existingIndex < this.currentPathTiles.length - 1) {
-      // Backward drag - reset path to this cell
-      this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
-      this.drawPathHighlight();
-      this.updateBarootDisplay();
-      logger.info('Path truncated by backward drag', { 
-        newLength: this.currentPathTiles.length,
-        truncatedTo: { gridX, gridY, isPlayerGrid },
-        existingIndex
-      });
-      return;
+    const existingIndex = this.currentPathTiles.findIndex(t => 
+      t.x === newTile.x && t.y === newTile.y && t.isPlayerGrid === newTile.isPlayerGrid
+    );
+    
+    if (existingIndex >= 0) {
+      const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+      const isLastTile = existingIndex === this.currentPathTiles.length - 1;
+      
+      if (isLastTile) {
+        // Hovering over the last tile - don't do anything, allow continuing
+        logger.info('Hovering over last tile, allowing continue', {
+          tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+          pathLength: this.currentPathTiles.length
+        });
+        return;
+      } else {
+        // Backward drag - reset path to this cell
+        this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
+        this.drawPathHighlight();
+        this.updateBarootDisplay();
+        logger.info('Path truncated by backward drag', { 
+          newLength: this.currentPathTiles.length,
+          truncatedTo: { gridX, gridY, isPlayerGrid },
+          existingIndex,
+          lastTileBeforeTruncate: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+          fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
+        });
+        return;
+      }
     }
     
     // Check if adjacent to last tile (can be in different grids)
