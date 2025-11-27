@@ -952,10 +952,23 @@ export class GameRenderer extends Phaser.Scene {
               launcherType: clickedLauncher.type,
               launcherConfig: launcherConfig.titleFA,
               manaCost: launcherConfig.manaCost,
+              currentMana: this.mana,
               launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
               clickPosition: { gridX, gridY, isPlayerGrid },
               clickScreenPosition: { x: pointer.x, y: pointer.y }
             });
+            
+            // Check if enough mana to fire this launcher
+            if (this.mana < launcherConfig.manaCost) {
+              const requiredMana = launcherConfig.manaCost;
+              this.onNotification(`مانا کافی نیست، مقدار لازم ${requiredMana} واحد`);
+              logger.warn('Cannot select launcher - insufficient mana', {
+                currentMana: this.mana,
+                requiredMana: launcherConfig.manaCost,
+                launcherType: clickedLauncher.type
+              });
+              return;
+            }
             
             // Check how many shots already planned for this launcher
             const shotsForThisLauncher = this.pendingShots.filter(s => s.launcherId === clickedLauncher.id).length;
