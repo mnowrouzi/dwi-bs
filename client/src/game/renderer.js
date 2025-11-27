@@ -15,29 +15,52 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   init(data) {
-    if (!data || !data.config) {
-      logger.error('GameRenderer.init: config is missing!', data);
-      return;
+    // Phaser may call init multiple times or with different data
+    // Check if we already have config (from scene.data)
+    if (!this.config) {
+      // Try to get from scene data first
+      if (this.scene && this.scene.settings && this.scene.settings.data) {
+        data = this.scene.settings.data;
+      }
+      
+      // If still no data, use passed data
+      if (!data || !data.config) {
+        logger.warn('GameRenderer.init: config is missing, will retry...', { 
+          hasData: !!data,
+          hasSceneData: !!(this.scene && this.scene.settings && this.scene.settings.data)
+        });
+        // Retry after a short delay
+        if (this.time) {
+          this.time.delayedCall(100, () => {
+            if (!this.config && this.scene && this.scene.settings && this.scene.settings.data) {
+              this.init(this.scene.settings.data);
+            }
+          });
+        }
+        return;
+      }
+      
+      this.config = data.config;
+      this.gameState = data.gameState;
+      this.onNotification = data.onNotification || (() => {});
+      this.onPhaseChange = data.onPhaseChange || (() => {});
+      
+      this.gridSize = this.config.gridSize;
+      this.playerUnits = { launchers: [], defenses: [] };
+      this.opponentUnits = { launchers: [], defenses: [] };
+      this.currentPhase = GAME_PHASES.BUILD;
+      this.budget = this.config.budget;
+      this.mana = this.config.mana.startMana;
+      this.shotsThisTurn = 0;
+      this.currentTurn = null;
+      this.selectedLauncher = null;
+      this.pathTiles = [];
+      this.isDrawingPath = false;
+      
+      logger.info('GameRenderer initialized', { gridSize: this.gridSize, budget: this.budget });
+    } else {
+      logger.debug('GameRenderer.init: Already initialized, skipping');
     }
-    
-    this.config = data.config;
-    this.gameState = data.gameState;
-    this.onNotification = data.onNotification || (() => {});
-    this.onPhaseChange = data.onPhaseChange || (() => {});
-    
-    this.gridSize = this.config.gridSize;
-    this.playerUnits = { launchers: [], defenses: [] };
-    this.opponentUnits = { launchers: [], defenses: [] };
-    this.currentPhase = GAME_PHASES.BUILD;
-    this.budget = this.config.budget;
-    this.mana = this.config.mana.startMana;
-    this.shotsThisTurn = 0;
-    this.currentTurn = null;
-    this.selectedLauncher = null;
-    this.pathTiles = [];
-    this.isDrawingPath = false;
-    
-    logger.info('GameRenderer initialized', { gridSize: this.gridSize, budget: this.budget });
   }
 
   preload() {

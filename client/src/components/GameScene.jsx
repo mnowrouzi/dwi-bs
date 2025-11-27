@@ -65,11 +65,8 @@ export default function GameScene({ gameState, onBackToMenu }) {
       phaserGameRef.current = null;
     }
 
-    // Create scene instance with data BEFORE creating Phaser game
-    const sceneInstance = new GameRenderer();
-    
-    // Initialize scene with data first
-    sceneInstance.init({
+    // Prepare scene data
+    const sceneData = {
       config,
       gameState,
       onNotification: (msg) => {
@@ -79,7 +76,7 @@ export default function GameScene({ gameState, onBackToMenu }) {
         }, 3000);
       },
       onPhaseChange: setCurrentPhase
-    });
+    };
 
     const phaserConfig = {
       type: Phaser.AUTO,
@@ -87,7 +84,17 @@ export default function GameScene({ gameState, onBackToMenu }) {
       height: 800,
       parent: gameRef.current,
       backgroundColor: '#1c1f22',
-      scene: sceneInstance, // Use initialized scene instance
+      scene: {
+        key: 'GameRenderer',
+        create: GameRenderer,
+        init: function(data) {
+          // Phaser passes data here, but we need to merge it
+          if (data) {
+            Object.assign(this, data);
+          }
+        },
+        data: sceneData // Pass data directly
+      },
       physics: {
         default: 'arcade',
         arcade: { debug: false }

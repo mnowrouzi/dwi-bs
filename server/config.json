@@ -59,7 +59,7 @@
       "coverage": 2,
       "interceptChance": 0.7,
       "color": "#66ccff",
-      "defenseSound": "assets/audio/defense_intercept.wav"
+      "defenseSound": "assets/audio/defense_intercept.mp3"
     },
     {
       "id": "mediumDef",
@@ -77,7 +77,7 @@
       "coverage": 4,
       "interceptChance": 0.95,
       "color": "#2266ff",
-      "defenseSound": "assets/audio/defense_intercept.wav"
+      "defenseSound": "assets/audio/defense_intercept.mp3"
     }
   ],
   "animations": {
