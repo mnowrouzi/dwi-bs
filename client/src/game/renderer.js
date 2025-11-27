@@ -15,10 +15,17 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   init(data) {
-    logger.info('GameRenderer.init called', { hasData: !!data, hasConfig: !!(data && data.config) });
+    logger.info('GameRenderer.init called', { 
+      hasData: !!data, 
+      hasConfig: !!(data && data.config),
+      dataKeys: data ? Object.keys(data) : []
+    });
     
     if (!data || !data.config) {
-      logger.warn('GameRenderer.init: config is missing!', { data });
+      logger.warn('GameRenderer.init: config is missing!', { 
+        data: data ? Object.keys(data) : 'no data',
+        config: data?.config ? 'has config' : 'no config'
+      });
       // Don't return, let it retry in preload/create
       return;
     }

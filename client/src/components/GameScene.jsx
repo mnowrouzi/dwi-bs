@@ -78,50 +78,40 @@ export default function GameScene({ gameState, onBackToMenu }) {
       onPhaseChange: setCurrentPhase
     };
 
-    const phaserConfig = {
-      type: Phaser.AUTO,
-      width: 1200,
-      height: 800,
-      parent: gameRef.current,
-      backgroundColor: '#0a0d0f', // Match container background
-      scene: GameRenderer,
-      physics: {
-        default: 'arcade',
-        arcade: { debug: false }
-      }
-    };
-
     try {
-      // Create game instance
+      // Create scene instance and initialize it with data BEFORE creating Phaser Game
+      const sceneInstance = new GameRenderer();
+      
+      // Initialize scene with data first
+      logger.info('Initializing scene with config data...', { hasConfig: !!config, configKeys: config ? Object.keys(config) : [] });
+      sceneInstance.init(sceneData);
+      
+      const phaserConfig = {
+        type: Phaser.AUTO,
+        width: 1200,
+        height: 800,
+        parent: gameRef.current,
+        backgroundColor: '#0a0d0f',
+        scene: sceneInstance, // Use pre-initialized scene instance
+        physics: {
+          default: 'arcade',
+          arcade: { debug: false }
+        }
+      };
+
+      // Create game instance with pre-initialized scene
       phaserGameRef.current = new Phaser.Game(phaserConfig);
       
-      // Wait for scene to be ready, then start it with data
-      const startScene = () => {
-        const scene = phaserGameRef.current?.scene?.getScene('GameRenderer');
-        if (!scene) {
-          logger.debug('Scene not ready yet, retrying...');
-          setTimeout(startScene, 50);
-          return;
-        }
-        
-        logger.info('Starting scene with config data...', { hasConfig: !!config });
-        
-        // Start scene with data
-        phaserGameRef.current.scene.start('GameRenderer', sceneData);
-        
-        logger.info('Phaser game initialized successfully');
+      logger.info('Phaser game initialized successfully');
 
-        // Handle WebSocket messages
-        gameState.ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          logger.websocket(`Received: ${data.type}`, data);
-          if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
-            phaserGameRef.current.scene.scenes[0].handleServerMessage(data);
-          }
-        };
+      // Handle WebSocket messages
+      gameState.ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        logger.websocket(`Received: ${data.type}`, data);
+        if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+          phaserGameRef.current.scene.scenes[0].handleServerMessage(data);
+        }
       };
-      
-      setTimeout(startScene, 100);
     } catch (error) {
       logger.error('Error initializing Phaser:', error);
       setError('خطا در راه‌اندازی بازی');
