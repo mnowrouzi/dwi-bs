@@ -75,6 +75,7 @@ export class GameRenderer extends Phaser.Scene {
     this.pendingShots = []; // Array of { launcher, pathTiles }
     this.selectedLauncherForShots = null;
     this.pathSelectionMode = false; // Whether we're selecting cells for path
+    this.aimingMode = false; // Whether we're in aiming mode (launcher selected, ready to draw path)
     this.selectedLauncher = null;
     this.pathTiles = [];
     this.isDrawingPath = false;
@@ -414,20 +415,18 @@ export class GameRenderer extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setStrokeStyle(3, 0xffffff)
       .setDepth(100)
-      .setVisible(false) // Hidden by default, shown in battle phase
+      .setVisible(false) // Hidden by default, shown only in aiming mode
       .on('pointerdown', () => {
-        if (this.currentPhase === GAME_PHASES.BATTLE && 
+        if (this.aimingMode && this.currentPhase === GAME_PHASES.BATTLE && 
             this.currentTurn === this.gameState.playerId) {
-          if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
-            this.finishPathSelection();
-            if (this.pendingShots.length > 0) {
-              this.fireAllShots();
-            }
-          } else if (this.pendingShots.length > 0) {
-            // Fire pending shots
+          // If path is empty, do nothing
+          if (!this.currentPathTiles || this.currentPathTiles.length < 2) {
+            return;
+          }
+          // If path is valid, execute shot
+          this.finishPathSelection();
+          if (this.pendingShots.length > 0) {
             this.fireAllShots();
-          } else {
-            this.onNotification('ابتدا مسیر را رسم کنید');
           }
         }
       })
@@ -495,7 +494,7 @@ export class GameRenderer extends Phaser.Scene {
           logger.info('Launcher selected for placement:', launcher.id, { cost: launcher.cost });
           this.onNotification(`موشک‌انداز ${launcher.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         }
-        // In BATTLE phase, launcher buttons are disabled - selection is done by clicking on grid
+        // In BATTLE phase, buttons are hidden
       })
       .on('pointerover', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
@@ -507,6 +506,12 @@ export class GameRenderer extends Phaser.Scene {
           btn.setFillStyle(0x3f5765);
         }
       });
+    
+    // Store references to hide/show in battle phase
+    this.launcherButtonsGroup = {
+      label: launcherLabel,
+      buttons: this.launcherButtons
+    };
       
       this.add.text(btnX, btnY - 20, launcher.titleFA, {
         fontSize: '11px',
@@ -525,6 +530,12 @@ export class GameRenderer extends Phaser.Scene {
       
       this.launcherButtons.push(btn);
     });
+    
+    // Store references to hide/show in battle phase
+    this.launcherButtonsGroup = {
+      label: launcherLabel,
+      buttons: this.launcherButtons
+    };
     
     // Defenses section (positioned below launchers) with proper margin
     const defensesStartY = panelY + 20 + Math.ceil(this.config.launchers.length / 2) * (buttonHeight + 15) + 50;
@@ -558,7 +569,7 @@ export class GameRenderer extends Phaser.Scene {
           logger.info('Defense selected for placement:', defense.id);
           this.onNotification(`پدافند ${defense.titleFA} انتخاب شد. روی زمین بازی کلیک کنید.`);
         }
-        // In BATTLE phase, defense buttons are disabled
+        // In BATTLE phase, buttons are hidden
       })
       .on('pointerover', () => {
         if (this.currentPhase === GAME_PHASES.BUILD) {
@@ -587,6 +598,12 @@ export class GameRenderer extends Phaser.Scene {
       
       this.defenseButtons.push(btn);
     });
+    
+    // Store references to hide/show in battle phase
+    this.defenseButtonsGroup = {
+      label: defenseLabel,
+      buttons: this.defenseButtons
+    };
     
     // Ready button (positioned at bottom)
     const readyButtonY = defensesStartY + 35 + Math.ceil(this.config.defenses.length / 2) * (buttonHeight + 10) + 30;
@@ -644,14 +661,18 @@ export class GameRenderer extends Phaser.Scene {
       }
     });
     
-    // F key to fire
+    // F key to fire (only in aiming mode)
     this.input.keyboard?.on('keydown-F', () => {
-      if (this.currentPhase === GAME_PHASES.BATTLE && this.currentTurn === this.gameState.playerId) {
-        if (this.currentPathTiles && this.currentPathTiles.length >= 2) {
-          this.finishPathSelection();
-          if (this.pendingShots.length > 0) {
-            this.fireAllShots();
-          }
+      if (this.aimingMode && this.currentPhase === GAME_PHASES.BATTLE && 
+          this.currentTurn === this.gameState.playerId) {
+        // If path is empty, do nothing
+        if (!this.currentPathTiles || this.currentPathTiles.length < 2) {
+          return;
+        }
+        // If path is valid, execute shot
+        this.finishPathSelection();
+        if (this.pendingShots.length > 0) {
+          this.fireAllShots();
         }
       }
     });
@@ -721,10 +742,11 @@ export class GameRenderer extends Phaser.Scene {
               return;
             }
             
+            // Enter aiming mode immediately - no second click needed
             this.selectedLauncherForShots = clickedLauncher;
             this.currentPathTiles = [];
+            this.aimingMode = true;
             this.pathSelectionMode = true;
-            this.onNotification(`موشک‌انداز ${launcherConfig.titleFA} انتخاب شد. خانه‌های مسیر را انتخاب کنید.`);
             
             // Initialize path highlight graphics
             if (!this.pathHighlightGraphics) {
@@ -732,16 +754,25 @@ export class GameRenderer extends Phaser.Scene {
               this.pathHighlightGraphics.setDepth(40);
             }
             
+            // Show FIRE button in aiming mode
+            if (this.fireButton) {
+              this.fireButton.setVisible(true);
+              this.fireButtonText.setVisible(true);
+            }
+            
+            // Hide unit panel buttons in battle phase
+            this.hideUnitPanelInBattle();
+            
             return;
           }
         }
       }
-      this.onNotification('لطفاً ابتدا روی موشک‌انداز کلیک کنید');
+      // If not clicking on launcher and not in aiming mode, do nothing
       return;
     }
     
-    // If launcher selected, start drag-based path drawing
-    if (this.pathSelectionMode && this.selectedLauncherForShots) {
+    // If in aiming mode, start drag-based path drawing immediately
+    if (this.aimingMode && this.selectedLauncherForShots) {
       // Start drawing path from this tile
       const startTile = { x: gridX, y: gridY, isPlayerGrid };
       
@@ -766,7 +797,7 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattleDrag(pointer) {
-    if (!this.isDrawingPath || !this.selectedLauncherForShots) return;
+    if (!this.aimingMode || !this.selectedLauncherForShots) return;
     
     const separatorWidth = 4;
     const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
@@ -813,18 +844,59 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattlePointerUp(pointer) {
-    if (!this.isDrawingPath) return;
+    if (!this.aimingMode) return;
     
     this.isDrawingPath = false;
     
-    // Path is complete, player can review or press FIRE
-    if (this.currentPathTiles.length >= 2) {
-      this.onNotification('مسیر کامل شد. برای شلیک کلید F را فشار دهید یا دکمه شلیک را بزنید.');
-    } else {
-      // Path too short, clear it
-      this.currentPathTiles = [];
-      this.drawPathHighlight();
-      this.onNotification('مسیر باید حداقل 2 خانه باشد');
+    // Path drawing complete - no notifications, just keep path visible
+    // Player can review and press FIRE when ready
+  }
+  
+  hideUnitPanelInBattle() {
+    // Hide launcher buttons
+    if (this.launcherButtonsGroup) {
+      if (this.launcherButtonsGroup.label) {
+        this.launcherButtonsGroup.label.setVisible(false);
+      }
+      this.launcherButtonsGroup.buttons.forEach(btn => btn.setVisible(false));
+    }
+    
+    // Hide defense buttons
+    if (this.defenseButtonsGroup) {
+      if (this.defenseButtonsGroup.label) {
+        this.defenseButtonsGroup.label.setVisible(false);
+      }
+      this.defenseButtonsGroup.buttons.forEach(btn => btn.setVisible(false));
+    }
+    
+    // Hide ready button
+    if (this.readyButton) {
+      this.readyButton.setVisible(false);
+      this.readyButtonText.setVisible(false);
+    }
+  }
+  
+  showUnitPanelInBuild() {
+    // Show launcher buttons
+    if (this.launcherButtonsGroup) {
+      if (this.launcherButtonsGroup.label) {
+        this.launcherButtonsGroup.label.setVisible(true);
+      }
+      this.launcherButtonsGroup.buttons.forEach(btn => btn.setVisible(true));
+    }
+    
+    // Show defense buttons
+    if (this.defenseButtonsGroup) {
+      if (this.defenseButtonsGroup.label) {
+        this.defenseButtonsGroup.label.setVisible(true);
+      }
+      this.defenseButtonsGroup.buttons.forEach(btn => btn.setVisible(true));
+    }
+    
+    // Show ready button
+    if (this.readyButton) {
+      this.readyButton.setVisible(true);
+      this.readyButtonText.setVisible(true);
     }
   }
   
@@ -893,7 +965,14 @@ export class GameRenderer extends Phaser.Scene {
     this.selectedLauncherForShots = null;
     this.currentPathTiles = [];
     this.pathSelectionMode = false;
+    this.aimingMode = false;
     this.drawPathHighlight();
+    
+    // Hide FIRE button when not in aiming mode
+    if (this.fireButton) {
+      this.fireButton.setVisible(false);
+      this.fireButtonText.setVisible(false);
+    }
   }
 
   finishPathDrawing() {
@@ -1018,8 +1097,15 @@ export class GameRenderer extends Phaser.Scene {
     this.selectedLauncherForShots = null;
     this.currentPathTiles = [];
     this.pathSelectionMode = false;
+    this.aimingMode = false;
     if (this.pathHighlightGraphics) {
       this.pathHighlightGraphics.clear();
+    }
+    
+    // Hide FIRE button after firing
+    if (this.fireButton) {
+      this.fireButton.setVisible(false);
+      this.fireButtonText.setVisible(false);
     }
     
     this.onNotification(`${shotsCount} شلیک ارسال شد`);
@@ -1057,21 +1143,28 @@ export class GameRenderer extends Phaser.Scene {
         this.updateTurnIndicator();
         this.audioController.playSound('turnChange');
         
-        // Reset pending shots on turn change
-        this.pendingShots = [];
-        this.selectedLauncherForShots = null;
-        this.currentPathTiles = [];
-        this.pathSelectionMode = false;
-        if (this.pathHighlightGraphics) {
-          this.pathHighlightGraphics.clear();
-        }
-        
-        // Start battle turn timer if it's player's turn
-        if (this.currentTurn === this.gameState.playerId && this.currentPhase === GAME_PHASES.BATTLE) {
-          this.startBattleTurnTimer();
-        } else {
-          this.stopBattleTurnTimer();
-        }
+    // Reset pending shots on turn change
+    this.pendingShots = [];
+    this.selectedLauncherForShots = null;
+    this.currentPathTiles = [];
+    this.pathSelectionMode = false;
+    this.aimingMode = false;
+    if (this.pathHighlightGraphics) {
+      this.pathHighlightGraphics.clear();
+    }
+    
+    // Hide FIRE button when not in aiming mode
+    if (this.fireButton) {
+      this.fireButton.setVisible(false);
+      this.fireButtonText.setVisible(false);
+    }
+    
+    // Start battle turn timer if it's player's turn
+    if (this.currentTurn === this.gameState.playerId && this.currentPhase === GAME_PHASES.BATTLE) {
+      this.startBattleTurnTimer();
+    } else {
+      this.stopBattleTurnTimer();
+    }
         break;
       
       case MESSAGE_TYPES.APPLY_DAMAGE:
@@ -1107,11 +1200,17 @@ export class GameRenderer extends Phaser.Scene {
       this.currentPhase = GAME_PHASES.BUILD;
       this.onPhaseChange(this.currentPhase);
       
+      // Show unit panel buttons in build phase
+      this.showUnitPanelInBuild();
+      
       // Hide FIRE button in build phase
       if (this.fireButton) {
         this.fireButton.setVisible(false);
         this.fireButtonText.setVisible(false);
       }
+      
+      // Reset aiming mode
+      this.aimingMode = false;
       
       // Stop battle timer if running
       this.stopBattleTurnTimer();
@@ -1196,10 +1295,13 @@ export class GameRenderer extends Phaser.Scene {
     this.manaBar.updateMana(this.mana);
     this.updateTurnIndicator();
     
-    // Show FIRE button in battle phase
+    // Hide unit panel buttons in battle phase
+    this.hideUnitPanelInBattle();
+    
+    // FIRE button will be shown only when aiming mode is active
     if (this.fireButton) {
-      this.fireButton.setVisible(true);
-      this.fireButtonText.setVisible(true);
+      this.fireButton.setVisible(false);
+      this.fireButtonText.setVisible(false);
     }
     
     // Start battle turn timer if it's player's turn
