@@ -10,7 +10,8 @@
     "maxShotsPerLauncherPerTurn": 1
   },
   "battle": {
-    "turnTimeSeconds": 20
+    "turnTimeSeconds": 20,
+    "missileMoveTimePerTile": 100
   },
   "launchers": [
     {

@@ -1953,22 +1953,47 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   fireAllShots() {
+    logger.info('fireAllShots called', {
+      currentPathTiles: this.currentPathTiles?.length || 0,
+      selectedLauncher: this.selectedLauncherForShots?.id,
+      currentTurn: this.currentTurn,
+      playerId: this.gameState.playerId,
+      mana: this.mana
+    });
+    
     // Fire the current path (only one shot per turn)
     if (!this.currentPathTiles || this.currentPathTiles.length < 2 || !this.selectedLauncherForShots) {
+      logger.warn('fireAllShots: No valid path to fire', {
+        currentPathTiles: this.currentPathTiles?.length || 0,
+        selectedLauncher: this.selectedLauncherForShots?.id
+      });
       return; // No valid path to fire
     }
     
     // Check if it's player's turn
     if (this.currentTurn !== this.gameState.playerId) {
+      logger.warn('fireAllShots: Not player\'s turn', {
+        currentTurn: this.currentTurn,
+        playerId: this.gameState.playerId
+      });
       return;
     }
     
     // Get launcher config for mana cost
     const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
-    if (!launcherConfig) return;
+    if (!launcherConfig) {
+      logger.warn('fireAllShots: Launcher config not found', {
+        launcherType: this.selectedLauncherForShots.type
+      });
+      return;
+    }
     
     // Check if enough mana
     if (this.mana < launcherConfig.manaCost) {
+      logger.warn('fireAllShots: Not enough mana', {
+        mana: this.mana,
+        required: launcherConfig.manaCost
+      });
       return; // Not enough mana
     }
     
@@ -2435,12 +2460,15 @@ export class GameRenderer extends Phaser.Scene {
       }
     });
     
+    // Get missile move time per tile from config (default: 100ms = 0.1s per tile)
+    const moveTimePerTile = this.config.battle?.missileMoveTimePerTile || 100;
+    
     for (let i = 1; i < points.length; i++) {
       timeline.add({
         targets: missile,
         x: points[i].x,
         y: points[i].y,
-        duration: 200,
+        duration: moveTimePerTile,
         ease: 'Linear'
       });
     }
