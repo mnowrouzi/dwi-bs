@@ -879,18 +879,19 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleBattleDrag(pointer) {
-    logger.info('Battle drag event', {
+    logger.info('=== handleBattleDrag called ===', {
       pointerX: pointer.x,
       pointerY: pointer.y,
       pointerIsDown: pointer.isDown,
       aimingMode: this.aimingMode,
       selectedLauncher: this.selectedLauncherForShots?.id,
+      selectedLauncherPosition: this.selectedLauncherForShots ? { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y } : null,
       isDrawingPath: this.isDrawingPath,
       currentPathLength: this.currentPathTiles?.length || 0
     });
     
     if (!this.aimingMode || !this.selectedLauncherForShots || !this.isDrawingPath) {
-      logger.warn('Drag blocked', {
+      logger.warn('Drag blocked in handleBattleDrag', {
         aimingMode: this.aimingMode,
         selectedLauncher: this.selectedLauncherForShots?.id,
         isDrawingPath: this.isDrawingPath
