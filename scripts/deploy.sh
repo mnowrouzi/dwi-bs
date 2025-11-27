@@ -45,9 +45,9 @@ echo -e "\n${YELLOW}☁️  Step 5: Pushing to GitHub...${NC}"
 git push origin main
 echo -e "${GREEN}✅ Changes pushed to GitHub${NC}"
 
-# Step 6: Restart game
-echo -e "\n${YELLOW}🔄 Step 6: Restarting game...${NC}"
-"$SCRIPT_DIR/dev-restart.sh"
+# Step 6: Smart restart (only what changed)
+echo -e "\n${YELLOW}🔄 Step 6: Smart restarting (only what changed)...${NC}"
+"$SCRIPT_DIR/smart-restart.sh"
 
 echo -e "\n${GREEN}✅ Deployment complete!${NC}"
 echo -e "${BLUE}📊 Version: ${NEW_VERSION}${NC}"

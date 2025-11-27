@@ -29,6 +29,15 @@ function setVersion(version) {
   const clientPkg = JSON.parse(readFileSync(join(rootDir, 'client/package.json'), 'utf-8'));
   clientPkg.version = version;
   writeFileSync(join(rootDir, 'client/package.json'), JSON.stringify(clientPkg, null, 2) + '\n');
+  
+  // Update client/src/version.js
+  const clientVersionFile = join(rootDir, 'client/src/version.js');
+  const versionJsContent = `// Version file - auto-updated by bump-version script
+// This file is generated from package.json version
+export const VERSION = '${version}';
+
+`;
+  writeFileSync(clientVersionFile, versionJsContent, 'utf-8');
 }
 
 function bumpVersion(type = 'patch') {

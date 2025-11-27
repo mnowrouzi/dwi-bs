@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import faTexts from '../i18n/fa.json';
 import logger from '@shared/logger.js';
 import { MESSAGE_TYPES } from '@shared/types.js';
+import { VERSION as CLIENT_VERSION } from '../version.js';
 
 const API_URL = 'http://localhost:3000';
 const WS_URL = 'ws://localhost:3000';
@@ -10,18 +11,20 @@ export default function MenuFA({ onStartGame }) {
   const [roomId, setRoomId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [version, setVersion] = useState('...');
+  const [version, setVersion] = useState(CLIENT_VERSION);
 
-  // Load version on mount
+  // Try to load version from server (fallback to client version)
   useEffect(() => {
     fetch('http://localhost:3000/version')
       .then(res => res.json())
       .then(data => {
-        setVersion(data.version || '0.0.0');
+        if (data.version) {
+          setVersion(data.version);
+        }
       })
       .catch(err => {
-        logger.warn('Failed to load version:', err);
-        setVersion('0.0.0');
+        // If server is not available, use client version (already set)
+        logger.debug('Server version not available, using client version:', CLIENT_VERSION);
       });
   }, []);
 
