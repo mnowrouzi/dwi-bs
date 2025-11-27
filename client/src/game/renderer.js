@@ -102,10 +102,6 @@ export class GameRenderer extends Phaser.Scene {
       });
     }
     
-    // Create placeholder graphics (will be used if sprites fail to load)
-    // But only create if texture doesn't exist after load completes
-    this.createPlaceholderGraphics();
-    
     // Load sounds (if available) - errors won't break the game
     try {
       this.audioController = new AudioController(this, this.config.sounds || {});
