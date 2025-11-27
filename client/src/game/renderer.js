@@ -1237,10 +1237,17 @@ export class GameRenderer extends Phaser.Scene {
           launcher: { x: launcher.x, y: launcher.y, sizeX, sizeY },
           reason: 'Tile is not adjacent to launcher perimeter'
         });
+        // IMPORTANT: Clear any existing path highlight if tile is not adjacent
+        // This prevents showing green color for non-adjacent tiles
+        if (this.currentPathTiles && this.currentPathTiles.length > 0) {
+          this.currentPathTiles = [];
+          this.drawPathHighlight(); // Clear the highlight
+        }
         return;
       }
       
       // Start path from this adjacent tile
+      // IMPORTANT: Only start path if tile is actually adjacent to launcher
       this.currentPathTiles = [newTile];
       this.drawPathHighlight();
       this.updateBarootDisplay();
