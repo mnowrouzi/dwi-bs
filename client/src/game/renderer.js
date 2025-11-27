@@ -36,14 +36,25 @@ export class GameRenderer extends Phaser.Scene {
     this.buildBudget = this.config.buildBudget || 10;
     this.shotBudget = this.config.shotBudget || 5;
     this.mana = this.config.mana.startMana;
-    logger.info('Budget initialized from config', { budget: this.budget, configBudget: this.config.budget });
+    logger.info('Budget initialized from config', { 
+      buildBudget: this.buildBudget, 
+      shotBudget: this.shotBudget,
+      configBuildBudget: this.config.buildBudget,
+      configShotBudget: this.config.shotBudget
+    });
     this.shotsThisTurn = 0;
     this.currentTurn = null;
     this.selectedLauncher = null;
     this.pathTiles = [];
     this.isDrawingPath = false;
     
-    logger.info('GameRenderer initialized', { gridSize: this.gridSize, budget: this.budget });
+    logger.info('GameRenderer initialized', { 
+      gridSize: this.gridSize, 
+      buildBudget: this.buildBudget,
+      shotBudget: this.shotBudget,
+      launchers: this.config.launchers?.length,
+      defenses: this.config.defenses?.length
+    });
   }
 
   preload() {
@@ -59,9 +70,32 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    logger.info('GameRenderer.preload: Creating placeholder graphics...');
+    logger.info('GameRenderer.preload: Loading sprites from config...');
     
-    // Create placeholder graphics
+    // Load launcher sprites from config
+    if (this.config.launchers) {
+      this.config.launchers.forEach(launcher => {
+        if (launcher.launcherSprite) {
+          try {
+            this.load.image(`launcher_${launcher.id}`, launcher.launcherSprite);
+            logger.debug(`Loading launcher sprite: ${launcher.launcherSprite}`);
+          } catch (e) {
+            logger.warn(`Failed to load launcher sprite for ${launcher.id}: ${launcher.launcherSprite}`);
+          }
+        }
+        // Load missile sprites from config
+        if (launcher.missileSprite) {
+          try {
+            this.load.image(`missile_${launcher.id}`, launcher.missileSprite);
+            logger.debug(`Loading missile sprite: ${launcher.missileSprite}`);
+          } catch (e) {
+            logger.warn(`Failed to load missile sprite for ${launcher.id}: ${launcher.missileSprite}`);
+          }
+        }
+      });
+    }
+    
+    // Create placeholder graphics (fallback if sprites not loaded)
     this.createPlaceholderGraphics();
     
     // Load sounds (if available) - errors won't break the game
@@ -605,17 +639,20 @@ export class GameRenderer extends Phaser.Scene {
       this.onNotification(faTexts.notifications.missileIntercepted);
       this.audioController.playSound('defense_intercept');
       } else {
-        // Animate missile
+        // Animate missile - get launcher type from damage data
+        const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
+                        this.opponentUnits.launchers.find(l => l.id === data.launcherId);
+        const launcherType = launcher ? launcher.type : null;
+        
+        // Animate missile with launcher type to use correct sprite
         this.animateMissile(data.pathTiles, () => {
           // Show explosion
           const lastTile = data.pathTiles[data.pathTiles.length - 1];
           // Determine explosion type based on launcher
-          const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
-                          this.opponentUnits.launchers.find(l => l.id === data.launcherId);
-          const explosionType = launcher ? launcher.type : 'default';
+          const explosionType = launcherType || 'default';
           this.showExplosion(lastTile.x, lastTile.y, explosionType);
           this.audioController.playSound('explosion');
-        });
+        }, launcherType);
       }
     
     // Update units
