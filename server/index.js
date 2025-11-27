@@ -42,6 +42,14 @@ app.get('/config.json', (req, res) => {
   res.sendFile(join(__dirname, 'config.json'));
 });
 
+// Serve version
+app.get('/version', (req, res) => {
+  logger.debug('Serving version');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({ version });
+});
+
 // Setup WebSocket
 setupWebSocket(wss);
 

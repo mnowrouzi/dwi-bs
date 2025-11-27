@@ -10,6 +10,20 @@ export default function MenuFA({ onStartGame }) {
   const [roomId, setRoomId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [version, setVersion] = useState('...');
+
+  // Load version on mount
+  React.useEffect(() => {
+    fetch('http://localhost:3000/version')
+      .then(res => res.json())
+      .then(data => {
+        setVersion(data.version || '0.0.0');
+      })
+      .catch(err => {
+        logger.warn('Failed to load version:', err);
+        setVersion('0.0.0');
+      });
+  }, []);
 
   const createRoom = async () => {
     setIsCreating(true);
@@ -90,6 +104,7 @@ export default function MenuFA({ onStartGame }) {
     <div style={styles.container}>
       <div style={styles.menu}>
         <h1 style={styles.title}>{faTexts.menu.title}</h1>
+        <div style={styles.version}>نسخه: v{version}</div>
         
         <button
           style={styles.button}
@@ -140,9 +155,16 @@ const styles = {
   },
   title: {
     fontSize: '2.5rem',
-    marginBottom: '2rem',
+    marginBottom: '1rem',
     color: '#ffd700',
     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+  },
+  version: {
+    fontSize: '1rem',
+    marginBottom: '2rem',
+    color: '#aaa',
+    fontFamily: 'Vazirmatn, Tahoma',
+    opacity: 0.8,
   },
   button: {
     width: '100%',
