@@ -687,38 +687,85 @@ export class GameRenderer extends Phaser.Scene {
     }
     this.unitSprites = [];
     
-    // Render player units
-    this.playerUnits.launchers.forEach(unit => {
-      if (unit.destroyed) return;
-      const config = this.config.launchers.find(l => l.id === unit.type);
-      if (!config) return;
-      
-      const [sizeX, sizeY] = config.size;
-      const spriteKey = `launcher_${unit.type}`;
-      
-      // Check if sprite exists, if not use placeholder
-      let sprite;
-      if (this.textures.exists(spriteKey)) {
-        sprite = this.add.image(
-          GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
-          GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
-          spriteKey
-        );
-        // Set scale based on size
-        sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
-      } else {
-        // Fallback to placeholder
-        sprite = this.add.image(
-          GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
-          GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
-          spriteKey
-        );
-        sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
-        sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
-      }
-      
-      this.unitSprites.push(sprite);
-    });
+    // First, render units from unitPlacement (for immediate feedback)
+    if (this.unitPlacement && this.unitPlacement.placedUnits) {
+      this.unitPlacement.placedUnits.forEach(unit => {
+        if (unit.type === 'launcher') {
+          const config = this.config.launchers.find(l => l.id === unit.launcherType);
+          if (!config) return;
+          
+          const [sizeX, sizeY] = config.size;
+          const spriteKey = `launcher_${unit.launcherType}`;
+          
+          let sprite;
+          if (this.textures.exists(spriteKey)) {
+            sprite = this.add.image(
+              GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+              GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+              spriteKey
+            );
+            sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+          } else {
+            sprite = this.add.image(
+              GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+              GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+              spriteKey
+            );
+            sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
+            sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+          }
+          
+          this.unitSprites.push(sprite);
+        } else if (unit.type === 'defense') {
+          const config = this.config.defenses.find(d => d.id === unit.defenseType);
+          if (!config) return;
+          
+          const [sizeX, sizeY] = config.size || [1, 1];
+          const spriteKey = `defense_${unit.defenseType}`;
+          
+          const sprite = this.add.image(
+            GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+            GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+            spriteKey
+          );
+          sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
+          sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+          this.unitSprites.push(sprite);
+        }
+      });
+    }
+    
+    // Also render from server data (authoritative)
+    if (this.playerUnits && this.playerUnits.launchers) {
+      this.playerUnits.launchers.forEach(unit => {
+        if (unit.destroyed) return;
+        const config = this.config.launchers.find(l => l.id === unit.type);
+        if (!config) return;
+        
+        const [sizeX, sizeY] = config.size;
+        const spriteKey = `launcher_${unit.type}`;
+        
+        let sprite;
+        if (this.textures.exists(spriteKey)) {
+          sprite = this.add.image(
+            GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+            GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+            spriteKey
+          );
+          sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+        } else {
+          sprite = this.add.image(
+            GRID_OFFSET_X + unit.x * GRID_TILE_SIZE + (sizeX * GRID_TILE_SIZE) / 2,
+            GRID_OFFSET_Y + unit.y * GRID_TILE_SIZE + (sizeY * GRID_TILE_SIZE) / 2,
+            spriteKey
+          );
+          sprite.setTint(Phaser.Display.Color.HexStringToColor(config.color).color);
+          sprite.setDisplaySize(sizeX * GRID_TILE_SIZE, sizeY * GRID_TILE_SIZE);
+        }
+        
+        this.unitSprites.push(sprite);
+      });
+    }
     
     this.playerUnits.defenses.forEach(unit => {
       if (unit.destroyed) return;
