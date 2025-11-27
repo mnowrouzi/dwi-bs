@@ -409,12 +409,17 @@ export class GameRenderer extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(100); // Higher depth to appear above buttons
     
     this.launcherButtons = [];
+    
+    // Log full config before iterating
+    logger.info('Full config.launchers before setup:', JSON.stringify(this.config.launchers, null, 2));
+    
     this.config.launchers.forEach((launcher, index) => {
-      // Log launcher config to debug
+      // Log launcher config to debug - log the actual values
       logger.info(`Setting up launcher button: ${launcher.id}`, { 
         cost: launcher.cost, 
         size: launcher.size,
-        titleFA: launcher.titleFA 
+        titleFA: launcher.titleFA,
+        fullLauncher: JSON.stringify(launcher)
       });
       
       const btnX = panelX + (index % 2) * buttonSpacing;
