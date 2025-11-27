@@ -790,16 +790,38 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // If in aiming mode and clicking on grid, start path from clicked tile
-    if (this.aimingMode && this.selectedLauncherForShots) {
-      // Start drawing path from this tile
-      const startTile = { x: gridX, y: gridY, isPlayerGrid };
+    // If in aiming mode and clicking on grid (not on launcher), continue path
+    if (this.aimingMode && this.selectedLauncherForShots && this.isDrawingPath) {
+      // Continue drawing path from this tile
+      const newTile = { x: gridX, y: gridY, isPlayerGrid };
       
-      // Start new path when clicking in aiming mode
-      this.currentPathTiles = [startTile];
-      this.isDrawingPath = true;
-      this.drawPathHighlight();
-      return;
+      // Add tile if not already in path
+      const existingIndex = this.currentPathTiles.findIndex(t => t.x === newTile.x && t.y === newTile.y);
+      if (existingIndex === -1) {
+        // Check if adjacent to last tile
+        if (this.currentPathTiles.length > 0) {
+          const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+          const isAdj = Math.abs(newTile.x - lastTile.x) <= 1 && 
+                        Math.abs(newTile.y - lastTile.y) <= 1 &&
+                        !(newTile.x === lastTile.x && newTile.y === lastTile.y);
+          
+          if (isAdj) {
+            this.currentPathTiles.push(newTile);
+            this.drawPathHighlight();
+            this.updateBarootDisplay();
+          }
+        } else {
+          // First tile
+          this.currentPathTiles = [newTile];
+          this.drawPathHighlight();
+          this.updateBarootDisplay();
+        }
+      } else if (existingIndex >= 0 && existingIndex < this.currentPathTiles.length - 1) {
+        // Backward click - reset path to this cell
+        this.currentPathTiles = this.currentPathTiles.slice(0, existingIndex + 1);
+        this.drawPathHighlight();
+        this.updateBarootDisplay();
+      }
     }
   }
   
