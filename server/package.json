@@ -1,6 +1,6 @@
 {
   "name": "dwi-bs-server",
-  "version": "0.0.62",
+  "version": "0.0.63",
   "description": "Multiplayer turn-based strategy game server",
   "main": "index.js",
   "type": "module",

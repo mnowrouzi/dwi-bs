@@ -1294,10 +1294,74 @@ export class GameRenderer extends Phaser.Scene {
                 (dx === 0 && dy === 1) ||   // Vertical
                 (dx === 1 && dy === 1);     // Diagonal
         
+        // If not adjacent but on a straight line (horizontal, vertical, or diagonal),
+        // we should fill intermediate tiles
+        const isStraightLine = (dx > 0 && dy === 0) ||  // Horizontal line
+                               (dx === 0 && dy > 0) ||  // Vertical line
+                               (dx === dy && dx > 0);    // Diagonal line
+        
+        if (!isAdj && isStraightLine) {
+          // Fill intermediate tiles
+          const intermediateTiles = this.getIntermediateTiles(lastTile, newTile);
+          logger.info('Filling intermediate tiles for fast drag', {
+            lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
+            newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+            dx, dy,
+            intermediateCount: intermediateTiles.length,
+            intermediateTiles: intermediateTiles.map(t => ({ x: t.x, y: t.y }))
+          });
+          
+          // Add intermediate tiles one by one (they will be validated individually)
+          for (const intermediateTile of intermediateTiles) {
+            // Check if intermediate tile is already in path
+            const intermediateIndex = this.currentPathTiles.findIndex(t => 
+              t.x === intermediateTile.x && t.y === intermediateTile.y && t.isPlayerGrid === intermediateTile.isPlayerGrid
+            );
+            
+            if (intermediateIndex === -1) {
+              // Check range for each intermediate tile
+              const currentPathLength = this.currentPathTiles.length;
+              const pathLengthAfterAdd = currentPathLength + 1;
+              
+              let withinRange = true;
+              if (this.selectedLauncherForShots) {
+                const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type);
+                if (launcherConfig && launcherConfig.range) {
+                  withinRange = pathLengthAfterAdd <= launcherConfig.range;
+                }
+              }
+              
+              if (withinRange) {
+                this.currentPathTiles.push(intermediateTile);
+                logger.info('✅ Intermediate tile added to path', {
+                  tile: { x: intermediateTile.x, y: intermediateTile.y, isPlayerGrid: intermediateTile.isPlayerGrid },
+                  pathLength: this.currentPathTiles.length
+                });
+              } else {
+                logger.warn('Intermediate tile exceeds range, stopping', {
+                  tile: { x: intermediateTile.x, y: intermediateTile.y },
+                  pathLengthAfterAdd,
+                  maxRange: this.selectedLauncherForShots ? (this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type)?.range || 0) : 0
+                });
+                break; // Stop adding intermediate tiles if range exceeded
+              }
+            }
+          }
+          
+          // After adding intermediate tiles, the newTile should now be adjacent to the last tile
+          const updatedLastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+          const updatedDx = Math.abs(newTile.x - updatedLastTile.x);
+          const updatedDy = Math.abs(newTile.y - updatedLastTile.y);
+          isAdj = (updatedDx === 1 && updatedDy === 0) ||  // Horizontal
+                  (updatedDx === 0 && updatedDy === 1) ||   // Vertical
+                  (updatedDx === 1 && updatedDy === 1);     // Diagonal
+        }
+        
         logger.info('Same grid adjacency check', {
           lastTile: { x: lastTile.x, y: lastTile.y, isPlayerGrid: lastTile.isPlayerGrid },
           newTile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
-          dx, dy, isAdj
+          dx, dy, isAdj,
+          filledIntermediate: !isAdj && isStraightLine
         });
       } else {
         // Different grids: tiles are adjacent if they are at the boundary between grids
