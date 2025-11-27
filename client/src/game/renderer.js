@@ -1235,13 +1235,16 @@ export class GameRenderer extends Phaser.Scene {
           });
           return;
         } else {
-          // Tile is adjacent to last tile but already in path - might be a duplicate detection issue
-          logger.info('Tile already in path but adjacent to last - skipping duplicate', {
+          // Tile is immediately before last tile (existingIndex = length - 2)
+          // This might be a duplicate or we're going back one step
+          // Allow it to continue - don't truncate for single step backward
+          logger.info('Tile is one step back from last - allowing continue without truncation', {
             tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
             existingIndex,
-            pathLength: this.currentPathTiles.length
+            pathLength: this.currentPathTiles.length,
+            distanceFromLast: distanceFromLast
           });
-          return;
+          // Don't return - allow the tile to be processed normally (might be a duplicate, will be filtered by existingIndex check later)
         }
       }
     }
