@@ -16,7 +16,7 @@
       "manaCost": 2,
       "range": 6,
       "aoe": [3, 3],
-      "size": [1, 2],
+      "size": [1, 1],
       "color": "#ffba00",
       "launcherSprite": "assets/sprites/launcher_short.png",
       "missileSprite": "assets/sprites/missile_short.png",

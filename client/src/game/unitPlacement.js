@@ -99,6 +99,9 @@ export class UnitPlacement {
     this.scene.buildBudget += cost;
     if (this.scene.budgetText) {
       this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
+      // Update position if needed
+      this.scene.budgetText.setX(GRID_OFFSET_X);
+      this.scene.budgetText.setY(GRID_OFFSET_Y - 35);
     }
     
     // Send updated units to server
@@ -152,6 +155,9 @@ export class UnitPlacement {
     this.scene.buildBudget -= launcherConfig.cost;
     if (this.scene.budgetText) {
       this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
+      // Update position if needed
+      this.scene.budgetText.setX(GRID_OFFSET_X);
+      this.scene.budgetText.setY(GRID_OFFSET_Y - 35);
     }
     
     // Send to server
@@ -210,6 +216,9 @@ export class UnitPlacement {
     this.scene.buildBudget -= defenseConfig.cost;
     if (this.scene.budgetText) {
       this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
+      // Update position if needed
+      this.scene.budgetText.setX(GRID_OFFSET_X);
+      this.scene.budgetText.setY(GRID_OFFSET_Y - 35);
     }
     
     // Send to server

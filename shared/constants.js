@@ -2,7 +2,7 @@
 
 export const GRID_TILE_SIZE = 40;
 export const GRID_OFFSET_X = 50;
-export const GRID_OFFSET_Y = 100;
+export const GRID_OFFSET_Y = 250; // Centered vertically (800 height / 2 - grid height / 2 ≈ 250)
 
 export const UNIT_STATES = {
   IDLE: 'idle',
