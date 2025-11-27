@@ -707,6 +707,85 @@ export class GameRenderer extends Phaser.Scene {
     });
   }
 
+  // Check if a tile is within launcher bounds
+  isTileInLauncherArea(tileX, tileY, launcher) {
+    const launcherConfig = this.config.launchers.find(c => c.id === launcher.type);
+    if (!launcherConfig) return false;
+    
+    const [sizeX, sizeY] = launcherConfig.size;
+    return tileX >= launcher.x && tileX < launcher.x + sizeX &&
+           tileY >= launcher.y && tileY < launcher.y + sizeY;
+  }
+  
+  // Find first adjacent tile outside launcher area
+  findFirstAdjacentTile(clickX, clickY, launcher) {
+    const launcherConfig = this.config.launchers.find(c => c.id === launcher.type);
+    if (!launcherConfig) return null;
+    
+    const [sizeX, sizeY] = launcherConfig.size;
+    
+    // Check if click is inside launcher area
+    const isInsideLauncher = this.isTileInLauncherArea(clickX, clickY, launcher);
+    
+    if (!isInsideLauncher) {
+      // Click is already outside launcher, use it as start
+      return { x: clickX, y: clickY };
+    }
+    
+    // Click is inside launcher, find first adjacent tile
+    // Check all 8 directions around launcher
+    const directions = [
+      { dx: -1, dy: 0 },   // Left
+      { dx: 1, dy: 0 },    // Right
+      { dx: 0, dy: -1 },   // Up
+      { dx: 0, dy: 1 },    // Down
+      { dx: -1, dy: -1 },  // Top-left
+      { dx: 1, dy: -1 },   // Top-right
+      { dx: -1, dy: 1 },   // Bottom-left
+      { dx: 1, dy: 1 }     // Bottom-right
+    ];
+    
+    // Check tiles adjacent to launcher perimeter
+    for (let y = launcher.y - 1; y <= launcher.y + sizeY; y++) {
+      for (let x = launcher.x - 1; x <= launcher.x + sizeX; x++) {
+        // Skip tiles inside launcher
+        if (x >= launcher.x && x < launcher.x + sizeX &&
+            y >= launcher.y && y < launcher.y + sizeY) {
+          continue;
+        }
+        
+        // Check if this tile is adjacent to launcher perimeter
+        let isAdjacent = false;
+        for (const dir of directions) {
+          const checkX = x + dir.dx;
+          const checkY = y + dir.dy;
+          if (this.isTileInLauncherArea(checkX, checkY, launcher)) {
+            isAdjacent = true;
+            break;
+          }
+        }
+        
+        if (isAdjacent && x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+          return { x, y };
+        }
+      }
+    }
+    
+    // Fallback: use tile to the right of launcher
+    const rightX = launcher.x + sizeX;
+    if (rightX < this.gridSize) {
+      return { x: rightX, y: launcher.y };
+    }
+    
+    // Fallback: use tile below launcher
+    const bottomY = launcher.y + sizeY;
+    if (bottomY < this.gridSize) {
+      return { x: launcher.x, y: bottomY };
+    }
+    
+    return null;
+  }
+
   handleBattlePointerDown(pointer) {
     logger.info('Battle pointer down', {
       pointerX: pointer.x,
@@ -916,19 +995,31 @@ export class GameRenderer extends Phaser.Scene {
             // Hide unit panel buttons in battle phase
             this.hideUnitPanelInBattle();
             
-            // Start path from launcher position or clicked position
+            // Find first adjacent tile outside launcher area
+            const firstTile = this.findFirstAdjacentTile(gridX, gridY, clickedLauncher);
+            
+            if (!firstTile) {
+              logger.warn('Could not find adjacent tile for launcher', {
+                launcherId: clickedLauncher.id,
+                launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
+                clickPosition: { gridX, gridY }
+              });
+              return;
+            }
+            
             // Don't return - allow drag to continue
             logger.info('Aiming mode activated, ready for drag', {
               launcherId: clickedLauncher.id,
               launcherPosition: { x: clickedLauncher.x, y: clickedLauncher.y },
               clickGridPosition: { gridX, gridY, isPlayerGrid },
+              firstAdjacentTile: firstTile,
               clickScreenPosition: { x: pointer.x, y: pointer.y },
               isDrawingPath: this.isDrawingPath,
               aimingMode: this.aimingMode
             });
             
-            // Start path from clicked position (can be on launcher or nearby)
-            const startTile = { x: gridX, y: gridY, isPlayerGrid };
+            // Start path from first adjacent tile (outside launcher area)
+            const startTile = { x: firstTile.x, y: firstTile.y, isPlayerGrid };
             this.currentPathTiles = [startTile];
             this.drawPathHighlight();
             
@@ -1050,13 +1141,32 @@ export class GameRenderer extends Phaser.Scene {
     
     const newTile = { x: gridX, y: gridY, isPlayerGrid };
     
-    // If path is empty, start from current tile
+    // Check if new tile is inside launcher area - if so, skip it
+    if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots)) {
+      logger.info('Tile inside launcher area, skipping', {
+        tile: { x: gridX, y: gridY },
+        launcher: { x: this.selectedLauncherForShots.x, y: this.selectedLauncherForShots.y }
+      });
+      return;
+    }
+    
+    // If path is empty, start from current tile (should not happen, but handle it)
     if (!this.currentPathTiles || this.currentPathTiles.length === 0) {
-      this.currentPathTiles = [newTile];
+      // Find first adjacent tile if path is empty
+      if (this.selectedLauncherForShots) {
+        const firstTile = this.findFirstAdjacentTile(gridX, gridY, this.selectedLauncherForShots);
+        if (firstTile) {
+          this.currentPathTiles = [{ x: firstTile.x, y: firstTile.y, isPlayerGrid }];
+        } else {
+          this.currentPathTiles = [newTile];
+        }
+      } else {
+        this.currentPathTiles = [newTile];
+      }
       this.drawPathHighlight();
       this.updateBarootDisplay();
       logger.info('Path started from drag', { 
-        tile: newTile,
+        tile: this.currentPathTiles[0],
         gridX,
         gridY,
         isPlayerGrid
