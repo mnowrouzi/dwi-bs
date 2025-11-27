@@ -1430,6 +1430,10 @@ export class GameRenderer extends Phaser.Scene {
             }
           }
           
+          // After adding intermediate tiles, update the path display
+          this.drawPathHighlight();
+          this.updateBarootDisplay();
+          
           // After adding intermediate tiles, the newTile should now be adjacent to the last tile
           const updatedLastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
           const updatedDx = Math.abs(newTile.x - updatedLastTile.x);
@@ -1437,6 +1441,36 @@ export class GameRenderer extends Phaser.Scene {
           isAdj = (updatedDx === 1 && updatedDy === 0) ||  // Horizontal
                   (updatedDx === 0 && updatedDy === 1) ||   // Vertical
                   (updatedDx === 1 && updatedDy === 1);     // Diagonal
+          
+          // If newTile is now adjacent after filling intermediate tiles, we should add it
+          // But first check if it's already in path (might have been added as intermediate)
+          const newTileInPath = this.currentPathTiles.findIndex(t => 
+            t.x === newTile.x && t.y === newTile.y && t.isPlayerGrid === newTile.isPlayerGrid
+          ) !== -1;
+          
+          if (isAdj && !newTileInPath) {
+            // newTile is adjacent and not in path - add it
+            const currentPathLength = this.currentPathTiles.length;
+            const pathLengthAfterAdd = currentPathLength + 1;
+            
+            let withinRange = true;
+            if (this.selectedLauncherForShots) {
+              const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherForShots.type);
+              if (launcherConfig && launcherConfig.range) {
+                withinRange = pathLengthAfterAdd <= launcherConfig.range;
+              }
+            }
+            
+            if (withinRange) {
+              this.currentPathTiles.push(newTile);
+              this.drawPathHighlight();
+              this.updateBarootDisplay();
+              logger.info('✅ New tile added after intermediate tiles', {
+                tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
+                pathLength: this.currentPathTiles.length
+              });
+            }
+          }
         }
         
         logger.info('Same grid adjacency check', {
