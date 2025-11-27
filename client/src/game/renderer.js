@@ -646,25 +646,47 @@ export class GameRenderer extends Phaser.Scene {
     });
     
     // Battle phase - drag for path drawing
+    // Use 'drag' event instead of 'pointermove' for better drag detection
+    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+      logger.info('Drag event detected', {
+        pointerX: pointer.x,
+        pointerY: pointer.y,
+        dragX,
+        dragY,
+        currentPhase: this.currentPhase,
+        aimingMode: this.aimingMode,
+        isDrawingPath: this.isDrawingPath
+      });
+      
+      if (this.currentPhase === GAME_PHASES.BATTLE && this.aimingMode && this.isDrawingPath) {
+        logger.info('Calling handleBattleDrag from drag event');
+        this.handleBattleDrag(pointer);
+      }
+    });
+    
+    // Also listen to pointermove as fallback
     this.input.on('pointermove', (pointer) => {
       if (this.currentPhase === GAME_PHASES.BATTLE) {
         logger.info('Pointer move in battle phase', {
           pointerX: pointer.x,
           pointerY: pointer.y,
           pointerIsDown: pointer.isDown,
+          pointerLeftButtonDown: pointer.leftButtonDown(),
           aimingMode: this.aimingMode,
           isDrawingPath: this.isDrawingPath,
           selectedLauncher: this.selectedLauncherForShots?.id
         });
         
-        if (this.aimingMode && this.isDrawingPath && pointer.isDown) {
-          logger.info('Calling handleBattleDrag');
+        if (this.aimingMode && this.isDrawingPath && (pointer.isDown || pointer.leftButtonDown())) {
+          logger.info('Calling handleBattleDrag from pointermove');
           this.handleBattleDrag(pointer);
         } else {
-          logger.info('Drag not triggered', {
+          logger.info('Drag not triggered from pointermove', {
             reason: !this.aimingMode ? 'not in aiming mode' : 
                     !this.isDrawingPath ? 'not drawing path' : 
-                    !pointer.isDown ? 'pointer not down' : 'unknown'
+                    (!pointer.isDown && !pointer.leftButtonDown()) ? 'pointer not down' : 'unknown',
+            pointerIsDown: pointer.isDown,
+            pointerLeftButtonDown: pointer.leftButtonDown()
           });
         }
       }
@@ -832,10 +854,13 @@ export class GameRenderer extends Phaser.Scene {
             
             logger.info('Path started from click', {
               startTile: { x: startTile.x, y: startTile.y, isPlayerGrid: startTile.isPlayerGrid },
-              pathLength: this.currentPathTiles.length
+              pathLength: this.currentPathTiles.length,
+              isDrawingPath: this.isDrawingPath,
+              aimingMode: this.aimingMode
             });
             
-            // Continue to allow drag - don't return here
+            // Set up drag tracking - don't return, allow pointer to continue tracking
+            // The pointermove handler will catch the drag
           }
         }
       }
