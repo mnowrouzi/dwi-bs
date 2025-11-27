@@ -12,6 +12,8 @@ A complete, fully playable, config-driven, web-based, multiplayer, turn-based st
 - **Path-Based Missiles**: Players draw missile paths tile-by-tile
 - **Semi-Realistic Graphics**: Modern military-tech visual style with animations
 - **Sound System**: Background music and sound effects (configurable)
+- **Comprehensive Logging**: Centralized logging system with production toggle
+- **Version Management**: Semantic versioning starting from 0.0.0
 
 ## Project Structure
 
@@ -180,6 +182,35 @@ The codebase is modular and extensible:
 - Client uses browser console
 - WebSocket messages are logged
 
+## Version Management
+
+The project uses semantic versioning starting from `0.0.0`. Version is stored in:
+- `VERSION` file (root)
+- `server/package.json`
+- `client/package.json`
+
+### Bumping Version
+
+```bash
+node scripts/bump-version.js [major|minor|patch]
+```
+
+Example:
+```bash
+node scripts/bump-version.js patch  # 0.0.0 -> 0.0.1
+node scripts/bump-version.js minor  # 0.0.1 -> 0.1.0
+node scripts/bump-version.js major  # 0.1.0 -> 1.0.0
+```
+
+## Logging System
+
+The game includes a comprehensive logging system that can be toggled on/off for production.
+
+- **Development**: Logging enabled by default
+- **Production**: Logging disabled by default (can be enabled via `ENABLE_LOGS=true`)
+
+See [docs/LOGGING.md](docs/LOGGING.md) for detailed documentation.
+
 ## License
 
 This project is provided as-is for educational and development purposes.
@@ -190,6 +221,7 @@ This project is provided as-is for educational and development purposes.
 - Sound files should be placed in `client/public/assets/audio/`
 - Sprite files should be placed in `client/public/assets/sprites/`
 - The game supports unlimited launcher and defense types via config
+- Logging is disabled in production by default to prevent performance degradation
 
 
 
