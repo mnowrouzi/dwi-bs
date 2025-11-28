@@ -504,10 +504,11 @@ export class GameRenderer extends Phaser.Scene {
       this.budgetText.setVisible(false);
     }
     
-    // Turn indicator - positioned in center between grids
-    // Grid labels are at offsetY - 50 = 200 (where offsetY = 250)
-    // Turn text should be below grid labels
-    const turnTextY = GRID_OFFSET_Y - 20; // Below grid labels (which are at offsetY - 50)
+    // Turn indicator - positioned above battle timer in center between grids
+    // Battle timer will be at turnTextY + 35
+    // So turn text should be above timer
+    const battleTimerY = GRID_OFFSET_Y - 20; // Timer position (below grid labels)
+    const turnTextY = battleTimerY - 35; // Above battle timer
     
     this.turnText = this.add.text(centerX, turnTextY, '', {
       fontSize: '22px', // Larger size (was 18px)
@@ -2874,13 +2875,13 @@ export class GameRenderer extends Phaser.Scene {
         align: 'center'
       }).setOrigin(0.5, 0).setDepth(100);
     } else {
-      // Update position to ensure it's below turnText
+      // Update position to ensure it's at battle timer position
       const separatorWidth = 20;
       const gridWidth = this.gridSize * GRID_TILE_SIZE;
       const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
-      const turnTextY = GRID_OFFSET_Y - 20;
-      const timerY = turnTextY + 35;
-      const gridLabelWidth = this.gridSize * GRID_TILE_SIZE;
+      const battleTimerY = GRID_OFFSET_Y - 20; // Timer position (below grid labels)
+      const timerY = battleTimerY;
+      const gridLabelWidth = this.gridSize * GRID_TILE_SIZE; // Same width as grid labels
       
       this.battleTurnTimerText.setPosition(centerX, timerY);
       this.battleTurnTimerText.setVisible(true);
