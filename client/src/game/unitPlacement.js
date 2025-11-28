@@ -158,11 +158,9 @@ export class UnitPlacement {
     
     // Update budget locally
     this.scene.buildBudget -= launcherConfig.cost;
-    if (this.scene.budgetText) {
-      this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
-      // Update position if needed
-      this.scene.budgetText.setX(GRID_OFFSET_X);
-      this.scene.budgetText.setY(GRID_OFFSET_Y - 35);
+    // Update build budget text (only in build phase)
+    if (this.scene.buildBudgetText && this.scene.currentPhase === GAME_PHASES.BUILD) {
+      this.scene.buildBudgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
     }
     
     // Send to server
@@ -222,11 +220,9 @@ export class UnitPlacement {
     
     // Update budget locally
     this.scene.buildBudget -= defenseConfig.cost;
-    if (this.scene.budgetText) {
-      this.scene.budgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
-      // Update position if needed
-      this.scene.budgetText.setX(GRID_OFFSET_X);
-      this.scene.budgetText.setY(GRID_OFFSET_Y - 35);
+    // Update build budget text (only in build phase)
+    if (this.scene.buildBudgetText && this.scene.currentPhase === GAME_PHASES.BUILD) {
+      this.scene.buildBudgetText.setText(`بودجه ساخت: ${this.scene.buildBudget}`);
     }
     
     // Send to server
