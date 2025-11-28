@@ -475,17 +475,52 @@ export class GameManager {
       }
     });
 
-    const turnChangeMessage = {
-      type: MESSAGE_TYPES.TURN_CHANGE,
-      currentTurn: this.currentTurn,
-      mana: {
-        player1: this.players.get('player1').mana,
-        player2: this.players.get('player2').mana
-      }
-    };
-    
-    logger.room(this.roomId, 'Broadcasting TURN_CHANGE', turnChangeMessage);
-    this.broadcast(turnChangeMessage);
+    // Send turn change with updated units for both players
+    this.players.forEach((player, playerId) => {
+      const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+      const opponent = this.players.get(opponentId);
+      
+      player.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.TURN_CHANGE,
+        currentTurn: this.currentTurn,
+        mana: {
+          player1: this.players.get('player1').mana,
+          player2: this.players.get('player2').mana
+        },
+        units: {
+          launchers: player.units.launchers.map(l => ({
+            id: l.id,
+            type: l.type,
+            x: l.x,
+            y: l.y,
+            destroyed: l.destroyed
+          })),
+          defenses: player.units.defenses.map(d => ({
+            id: d.id,
+            type: d.type,
+            x: d.x,
+            y: d.y,
+            destroyed: d.destroyed
+          }))
+        },
+        opponentUnits: {
+          launchers: opponent.units.launchers.map(l => ({
+            id: l.id,
+            type: l.type,
+            x: l.x,
+            y: l.y,
+            destroyed: l.destroyed
+          })),
+          defenses: opponent.units.defenses.map(d => ({
+            id: d.id,
+            type: d.type,
+            x: d.x,
+            y: d.y,
+            destroyed: d.destroyed
+          }))
+        }
+      }));
+    });
   }
 
   checkWinCondition() {

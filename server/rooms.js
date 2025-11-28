@@ -247,6 +247,11 @@ function handleRequestShot(ws, data) {
   
   if (result.success) {
     logger.room(roomId, `Shot successful, intercepted: ${result.intercepted}`);
+    
+    // Get opponent units for damage message
+    const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+    const opponent = gameManager.players.get(opponentId);
+    
     gameManager.broadcast({
       type: MESSAGE_TYPES.APPLY_DAMAGE,
       attackerId: playerId,
@@ -254,7 +259,40 @@ function handleRequestShot(ws, data) {
       pathTiles: data.pathTiles,
       damage: result.damage,
       intercepted: result.intercepted,
-      targetCells: result.targetCells
+      targetCells: result.targetCells,
+      // Include updated units for both players
+      units: {
+        launchers: gameManager.players.get(playerId).units.launchers.map(l => ({
+          id: l.id,
+          type: l.type,
+          x: l.x,
+          y: l.y,
+          destroyed: l.destroyed
+        })),
+        defenses: gameManager.players.get(playerId).units.defenses.map(d => ({
+          id: d.id,
+          type: d.type,
+          x: d.x,
+          y: d.y,
+          destroyed: d.destroyed
+        }))
+      },
+      opponentUnits: {
+        launchers: opponent.units.launchers.map(l => ({
+          id: l.id,
+          type: l.type,
+          x: l.x,
+          y: l.y,
+          destroyed: l.destroyed
+        })),
+        defenses: opponent.units.defenses.map(d => ({
+          id: d.id,
+          type: d.type,
+          x: d.x,
+          y: d.y,
+          destroyed: d.destroyed
+        }))
+      }
     });
     
     // Update mana

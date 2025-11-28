@@ -2593,7 +2593,9 @@ export class GameRenderer extends Phaser.Scene {
           currentTurn: data.currentTurn,
           playerId: this.gameState.playerId,
           isMyTurn: data.currentTurn === this.gameState.playerId,
-          mana: data.mana
+          mana: data.mana,
+          hasUnits: !!data.units,
+          hasOpponentUnits: !!data.opponentUnits
         });
         this.currentTurn = data.currentTurn;
         this.mana = data.mana[this.gameState.playerId];
@@ -2601,6 +2603,16 @@ export class GameRenderer extends Phaser.Scene {
         // Mana bar removed - no need to update UI
         this.updateTurnIndicator();
         this.audioController.playSound('turnChange');
+        
+        // Update units from server
+        if (data.units) {
+          this.playerUnits = data.units;
+        }
+        
+        // Update opponent units from server
+        if (data.opponentUnits) {
+          this.opponentUnits = data.opponentUnits;
+        }
         
         // Reset pending shots on turn change
         this.pendingShots = [];
@@ -3275,6 +3287,14 @@ export class GameRenderer extends Phaser.Scene {
         }, launcherType);
       }
     
+    // Update units from server (if provided)
+    if (data.units) {
+      this.playerUnits = data.units;
+    }
+    if (data.opponentUnits) {
+      this.opponentUnits = data.opponentUnits;
+    }
+    
     // Update units
     if (data.damage) {
       if (data.damage.launchers) {
@@ -3285,23 +3305,18 @@ export class GameRenderer extends Phaser.Scene {
             unit.destroyed = true;
             
             // If this is opponent's launcher and we destroyed it, highlight it
-            const isOpponentLauncher = this.opponentUnits.launchers.find(u => u.id === dmg.id);
             const isMyShot = data.attackerId === this.gameState.playerId;
+            const opponentLauncher = this.opponentUnits.launchers.find(u => u.id === dmg.id);
             
-            if (isMyShot) {
-              // Check if this is opponent's launcher (not our own)
-              // If unit is in opponentUnits, it's opponent's launcher
-              const opponentLauncher = this.opponentUnits.launchers.find(u => u.id === dmg.id);
-              if (opponentLauncher) {
-                // Highlight destroyed launcher in opponent grid
-                // dmg contains: { id, type, x, y } from server
-                this.highlightDestroyedLauncher({
-                  id: dmg.id,
-                  type: dmg.type || opponentLauncher.type,
-                  x: dmg.x,
-                  y: dmg.y
-                });
-              }
+            if (isMyShot && opponentLauncher) {
+              // Highlight destroyed launcher in opponent grid
+              // dmg contains: { id, type, x, y } from server
+              this.highlightDestroyedLauncher({
+                id: dmg.id,
+                type: dmg.type || opponentLauncher.type,
+                x: dmg.x,
+                y: dmg.y
+              });
             }
           }
         });
@@ -3313,6 +3328,9 @@ export class GameRenderer extends Phaser.Scene {
           if (unit) unit.destroyed = true;
         });
       }
+      this.renderUnits();
+    } else if (data.units || data.opponentUnits) {
+      // If no damage but units updated, re-render
       this.renderUnits();
     }
     
