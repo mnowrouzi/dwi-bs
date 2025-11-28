@@ -118,9 +118,12 @@ function handleJoinRoom(ws, data) {
     maxPlayers: 2
   });
   
-  // Start build phase
-  logger.room(roomId, 'Starting build phase');
+  // Start build phase (this will send BUILD_PHASE_STATE to both players)
+  logger.room(roomId, 'Starting build phase for both players');
   gameManager.startBuildPhase();
+  
+  // Log to verify player2 received the message
+  logger.room(roomId, `Player2 joined, build phase should be started. Phase: ${gameManager.phase}`);
 }
 
 function handlePlaceUnits(ws, data) {

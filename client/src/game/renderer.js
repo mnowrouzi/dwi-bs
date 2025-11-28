@@ -2460,15 +2460,22 @@ export class GameRenderer extends Phaser.Scene {
   handleBuildPhaseState(data) {
     logger.info('handleBuildPhaseState called', {
       currentPhase: this.currentPhase,
-      playerId: this.gameState.playerId,
+      playerId: this.gameState?.playerId,
+      dataPlayerId: data.playerId,
       buildBudget: data.buildBudget,
+      phase: data.phase,
       hasBuildPhaseTimer: !!this.buildPhaseTimer,
       hasTimerText: !!this.timerText,
-      isReady: this.isReady
+      isReady: this.isReady,
+      hasGameState: !!this.gameState
     });
     
     // Set phase to BUILD if not already
     if (this.currentPhase !== GAME_PHASES.BUILD) {
+      logger.info('Setting phase to BUILD', {
+        previousPhase: this.currentPhase,
+        playerId: this.gameState?.playerId
+      });
       this.currentPhase = GAME_PHASES.BUILD;
       this.onPhaseChange(this.currentPhase);
       
@@ -2514,18 +2521,22 @@ export class GameRenderer extends Phaser.Scene {
     // Check if timer hasn't started yet and we're in build phase and not ready
     if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText && !this.isReady) {
       logger.info('Starting build phase timer from handleBuildPhaseState', {
-        playerId: this.gameState.playerId,
+        playerId: this.gameState?.playerId,
         currentPhase: this.currentPhase,
-        isReady: this.isReady
+        isReady: this.isReady,
+        buildBudget: this.buildBudget
       });
       this.startBuildPhaseTimer();
     } else {
       logger.info('Timer not started in handleBuildPhaseState', {
-        playerId: this.gameState.playerId,
+        playerId: this.gameState?.playerId,
         currentPhase: this.currentPhase,
         hasBuildPhaseTimer: !!this.buildPhaseTimer,
         hasTimerText: !!this.timerText,
-        isReady: this.isReady
+        isReady: this.isReady,
+        reason: this.currentPhase !== GAME_PHASES.BUILD ? 'not in BUILD phase' : 
+                this.buildPhaseTimer || this.timerText ? 'timer already exists' : 
+                this.isReady ? 'already ready' : 'unknown'
       });
     }
   }
