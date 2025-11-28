@@ -214,18 +214,31 @@ export class GameRenderer extends Phaser.Scene {
       hasPlayerId: !!this.gameState?.playerId
     });
     
-    // If we're player1 and already received ROOM_UPDATE, start timer now
-    // This handles the case where ROOM_UPDATE was received before create() completed
-    if (this.gameState?.playerId === 'player1' && this.currentPhase === GAME_PHASES.WAITING) {
-      // Use a small delay to ensure everything is initialized
-      this.time.delayedCall(100, () => {
-        // Check if we should start timer (if ROOM_UPDATE was already received)
-        // We'll check this in handleRoomUpdate, but also here as a fallback
-        logger.info('Player1: Checking if timer should start after create()', {
-          currentPhase: this.currentPhase,
-          hasBuildPhaseTimer: !!this.buildPhaseTimer,
-          hasTimerText: !!this.timerText
-        });
+    // If we're player1, start timer immediately after create() completes
+    // This ensures timer starts even if ROOM_UPDATE was received before create() completed
+    if (this.gameState?.playerId === 'player1') {
+      // Use a small delay to ensure everything is initialized (buttons, UI, etc.)
+      this.time.delayedCall(200, () => {
+        if (this.currentPhase === GAME_PHASES.WAITING || this.currentPhase === GAME_PHASES.BUILD) {
+          logger.info('Player1: Starting timer after create() completes', {
+            currentPhase: this.currentPhase,
+            hasBuildPhaseTimer: !!this.buildPhaseTimer,
+            hasTimerText: !!this.timerText,
+            isReady: this.isReady
+          });
+          
+          // Set phase to BUILD if still WAITING
+          if (this.currentPhase === GAME_PHASES.WAITING) {
+            this.currentPhase = GAME_PHASES.BUILD;
+            this.onPhaseChange(this.currentPhase);
+            this.showUnitPanelInBuild();
+          }
+          
+          // Start timer if not already started
+          if (!this.buildPhaseTimer && !this.timerText && !this.isReady) {
+            this.startBuildPhaseTimer();
+          }
+        }
       });
     }
   }
