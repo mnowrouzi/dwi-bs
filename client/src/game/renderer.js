@@ -2192,9 +2192,38 @@ export class GameRenderer extends Phaser.Scene {
       case MESSAGE_TYPES.ERROR:
         if (data.message) {
           this.onNotification(data.message);
-          this.audioController.playSound('error');
+          if (this.audioController) {
+            this.audioController.playSound('error');
+          }
         }
         logger.warn('Server error message', { message: data.message });
+        
+        // If error occurs during build phase and we're ready, reset ready state
+        // This allows timer to restart if needed
+        if (this.currentPhase === GAME_PHASES.BUILD && this.isReady) {
+          this.isReady = false;
+          // Re-enable ready button
+          if (this.readyButton) {
+            this.readyButton.setFillStyle(0x2b3a42);
+            this.readyButton.setStrokeStyle(2, 0xffd700);
+            this.readyButton.setInteractive({ useHandCursor: true });
+            this.readyButtonText.setText(faTexts.buttons.ready);
+            this.readyButtonText.setColor('#ffd700');
+          }
+          // Clear timer if it exists (it should be cleared already, but just in case)
+          if (this.buildPhaseTimer) {
+            clearInterval(this.buildPhaseTimer);
+            this.buildPhaseTimer = null;
+          }
+          if (this.timerText) {
+            this.timerText.destroy();
+            this.timerText = null;
+          }
+          // Restart timer if we're still in build phase
+          if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText) {
+            this.startBuildPhaseTimer();
+          }
+        }
         break;
     }
   }
@@ -2256,7 +2285,8 @@ export class GameRenderer extends Phaser.Scene {
     // Start 30-second timer for build phase only once when both players are connected
     // Timer should only start when we receive BUILD_PHASE_STATE after both players are connected
     // Check if timer hasn't started yet and we're in build phase
-    if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText) {
+    // Also check if we're not already ready (to prevent restarting timer after error)
+    if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText && !this.isReady) {
       // Timer starts when build phase state is received (which means both players are connected)
       this.startBuildPhaseTimer();
     }

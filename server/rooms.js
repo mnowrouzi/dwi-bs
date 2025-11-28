@@ -179,6 +179,24 @@ function handleReadyToStart(ws, data) {
   const gameManager = rooms.get(roomId);
   if (!gameManager) return;
   
+  // Check if all players have launchers before forcing battle phase
+  if (!gameManager.allPlayersHaveLaunchers()) {
+    logger.room(roomId, 'Cannot force start battle - not all players have launchers');
+    // Don't mark players as ready, keep them in build phase
+    gameManager.broadcast({
+      type: MESSAGE_TYPES.ERROR,
+      message: 'همه بازیکنان باید حداقل یک موشک‌انداز در زمین داشته باشند'
+    });
+    // Keep in BUILD phase - don't reset ready states here, let players manually ready
+    gameManager.broadcast({
+      type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+      phase: GAME_PHASES.BUILD,
+      buildBudget: gameManager.sharedBuildBudget,
+      gridSize: gameManager.config.gridSize
+    });
+    return;
+  }
+  
   // Force start battle phase after 30 seconds
   // Mark all players as ready
   gameManager.players.forEach((player, playerId) => {
