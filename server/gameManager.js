@@ -388,8 +388,9 @@ export class GameManager {
   }
 
   switchTurn() {
+    const oldTurn = this.currentTurn;
     this.currentTurn = this.currentTurn === 'player1' ? 'player2' : 'player1';
-    logger.room(this.roomId, `Turn switched to: ${this.currentTurn}`);
+    logger.room(this.roomId, `Turn switched from ${oldTurn} to: ${this.currentTurn}`);
     
     // Reset shots and add mana per turn
     this.players.forEach((player, playerId) => {
@@ -405,14 +406,17 @@ export class GameManager {
       }
     });
 
-    this.broadcast({
+    const turnChangeMessage = {
       type: MESSAGE_TYPES.TURN_CHANGE,
       currentTurn: this.currentTurn,
       mana: {
         player1: this.players.get('player1').mana,
         player2: this.players.get('player2').mana
       }
-    });
+    };
+    
+    logger.room(this.roomId, 'Broadcasting TURN_CHANGE', turnChangeMessage);
+    this.broadcast(turnChangeMessage);
   }
 
   checkWinCondition() {

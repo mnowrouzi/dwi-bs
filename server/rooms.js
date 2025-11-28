@@ -244,7 +244,8 @@ function handleRequestShot(ws, data) {
         winner
       });
     } else {
-      // Switch turn
+      // Switch turn after shot
+      logger.room(roomId, 'Switching turn after shot');
       gameManager.switchTurn();
     }
   } else {
