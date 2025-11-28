@@ -3284,6 +3284,12 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   animateMissile(pathTiles, onComplete, launcherType = null) {
+    if (!pathTiles || pathTiles.length < 2) {
+      logger.warn('animateMissile: Invalid pathTiles', { pathTiles });
+      if (onComplete) onComplete();
+      return;
+    }
+    
     // Use missile sprite from config if available, otherwise use placeholder
     const missileKey = launcherType && this.textures.exists(`missile_${launcherType}`) 
       ? `missile_${launcherType}` 
@@ -3295,14 +3301,22 @@ export class GameRenderer extends Phaser.Scene {
     // Set missile size to tile size (as per user requirement - missile should be tile-sized)
     missile.setDisplaySize(GRID_TILE_SIZE, GRID_TILE_SIZE);
     
-    const startX = GRID_OFFSET_X + pathTiles[0].x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
-    const startY = GRID_OFFSET_Y + pathTiles[0].y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2;
-    missile.setPosition(startX, startY);
+    // Calculate offset based on which grid the tile is in
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
     
-    const points = pathTiles.map(tile => ({
-      x: GRID_OFFSET_X + tile.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2,
-      y: GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2
-    }));
+    const getTilePosition = (tile) => {
+      const offsetX = tile.isPlayerGrid !== false ? GRID_OFFSET_X : opponentOffsetX;
+      return {
+        x: offsetX + tile.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2,
+        y: GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2
+      };
+    };
+    
+    const startPos = getTilePosition(pathTiles[0]);
+    missile.setPosition(startPos.x, startPos.y);
+    
+    const points = pathTiles.map(tile => getTilePosition(tile));
     
     const timeline = this.tweens.timeline({
       onComplete: () => {
