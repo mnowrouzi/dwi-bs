@@ -2339,7 +2339,7 @@ export class GameRenderer extends Phaser.Scene {
     
     // Player1: Start timer immediately when room is created (players === 1)
     // This happens when player1 creates a room and enters the game screen
-    if (data.players === 1) {
+    if (data.players === 1 && this.gameState.playerId === 'player1') {
       logger.info('Player1: Room created, starting build phase timer', {
         currentPhase: this.currentPhase,
         hasBuildPhaseTimer: !!this.buildPhaseTimer,
@@ -2349,18 +2349,17 @@ export class GameRenderer extends Phaser.Scene {
       });
       
       // Set phase to BUILD (player1 enters build phase immediately)
-      if (this.currentPhase !== GAME_PHASES.BUILD) {
-        this.currentPhase = GAME_PHASES.BUILD;
-        this.onPhaseChange(this.currentPhase);
-        
-        // Show unit panel buttons
-        this.showUnitPanelInBuild();
-        
-        // Hide FIRE button in build phase
-        if (this.fireButton) {
-          this.fireButton.setVisible(false);
-          this.fireButtonText.setVisible(false);
-        }
+      // Don't check if already BUILD - always set it to ensure consistency
+      this.currentPhase = GAME_PHASES.BUILD;
+      this.onPhaseChange(this.currentPhase);
+      
+      // Show unit panel buttons
+      this.showUnitPanelInBuild();
+      
+      // Hide FIRE button in build phase
+      if (this.fireButton) {
+        this.fireButton.setVisible(false);
+        this.fireButtonText.setVisible(false);
       }
       
       // Start timer if not already started (30 seconds for player1)
