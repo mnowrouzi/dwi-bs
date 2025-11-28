@@ -2650,12 +2650,6 @@ export class GameRenderer extends Phaser.Scene {
       padding: { x: 10, y: 5 }
     }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
     
-    // Position timer in center between two grids
-    const separatorWidth = 20;
-    const gridWidth = this.gridSize * GRID_TILE_SIZE;
-    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
-    const centerY = GRID_OFFSET_Y - 50;
-    
     logger.info('Timer text created', {
       x: centerX,
       y: centerY,
