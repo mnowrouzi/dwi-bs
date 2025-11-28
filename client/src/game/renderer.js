@@ -465,7 +465,9 @@ export class GameRenderer extends Phaser.Scene {
     
     const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'مقدار باروت';
     const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : 0;
-    this.budgetText = this.add.text(panelX, panelY - 30, `${budgetLabel}: ${budgetValue}`, {
+    // Position baroot above battle timer (battle timer is at panelY - 30, so baroot is at panelY - 60)
+    const barootY = this.currentPhase === GAME_PHASES.BATTLE ? panelY - 60 : panelY - 30;
+    this.budgetText = this.add.text(panelX, barootY, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
@@ -2648,9 +2650,15 @@ export class GameRenderer extends Phaser.Scene {
       padding: { x: 10, y: 5 }
     }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
     
+    // Position timer in center between two grids
+    const separatorWidth = 20;
+    const gridWidth = this.gridSize * GRID_TILE_SIZE;
+    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    const centerY = GRID_OFFSET_Y - 50;
+    
     logger.info('Timer text created', {
-      x: GRID_OFFSET_X,
-      y: GRID_OFFSET_Y - 70,
+      x: centerX,
+      y: centerY,
       timeLeft,
       timerTextVisible: this.timerText.visible
     });
