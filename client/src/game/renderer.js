@@ -2874,9 +2874,19 @@ export class GameRenderer extends Phaser.Scene {
         align: 'center'
       }).setOrigin(0.5, 0).setDepth(100);
     } else {
+      // Update position to ensure it's below turnText
+      const separatorWidth = 20;
+      const gridWidth = this.gridSize * GRID_TILE_SIZE;
+      const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+      const turnTextY = GRID_OFFSET_Y - 20;
+      const timerY = turnTextY + 35;
+      const gridLabelWidth = this.gridSize * GRID_TILE_SIZE;
+      
+      this.battleTurnTimerText.setPosition(centerX, timerY);
       this.battleTurnTimerText.setVisible(true);
       this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
       this.battleTurnTimerText.setColor('#ffd700'); // Reset color
+      this.battleTurnTimerText.setFixedSize(gridLabelWidth, 0); // Same width as grid labels
     }
     
     // Update timer every second
