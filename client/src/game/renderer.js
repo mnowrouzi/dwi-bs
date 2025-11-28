@@ -2338,29 +2338,48 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Player1: Start timer immediately when room is created (players === 1)
-    // Player2: Timer will start when BUILD_PHASE_STATE is received
-    if (data.players === 1 && this.currentPhase === GAME_PHASES.WAITING) {
-      logger.info('Player1: Starting build phase timer immediately after room creation', {
+    // This happens when player1 creates a room and enters the game screen
+    if (data.players === 1) {
+      logger.info('Player1: Room created, starting build phase timer', {
         currentPhase: this.currentPhase,
         hasBuildPhaseTimer: !!this.buildPhaseTimer,
-        hasTimerText: !!this.timerText
+        hasTimerText: !!this.timerText,
+        playerId: this.gameState.playerId
       });
       
-      // Set phase to BUILD
-      this.currentPhase = GAME_PHASES.BUILD;
-      this.onPhaseChange(this.currentPhase);
+      // Set phase to BUILD (player1 enters build phase immediately)
+      if (this.currentPhase !== GAME_PHASES.BUILD) {
+        this.currentPhase = GAME_PHASES.BUILD;
+        this.onPhaseChange(this.currentPhase);
+        
+        // Show unit panel buttons
+        this.showUnitPanelInBuild();
+        
+        // Hide FIRE button in build phase
+        if (this.fireButton) {
+          this.fireButton.setVisible(false);
+          this.fireButtonText.setVisible(false);
+        }
+      }
       
-      // Show unit panel buttons
-      this.showUnitPanelInBuild();
-      
-      // Start timer if not already started
-      if (!this.buildPhaseTimer && !this.timerText) {
+      // Start timer if not already started (30 seconds for player1)
+      if (!this.buildPhaseTimer && !this.timerText && !this.isReady) {
+        logger.info('Player1: Starting 30-second build phase timer');
         this.startBuildPhaseTimer();
       }
     }
   }
 
   handleBuildPhaseState(data) {
+    logger.info('handleBuildPhaseState called', {
+      currentPhase: this.currentPhase,
+      playerId: this.gameState.playerId,
+      buildBudget: data.buildBudget,
+      hasBuildPhaseTimer: !!this.buildPhaseTimer,
+      hasTimerText: !!this.timerText,
+      isReady: this.isReady
+    });
+    
     // Set phase to BUILD if not already
     if (this.currentPhase !== GAME_PHASES.BUILD) {
       this.currentPhase = GAME_PHASES.BUILD;
