@@ -477,16 +477,17 @@ export class GameRenderer extends Phaser.Scene {
       this.buildBudgetText.setVisible(false);
     }
     
-    // Baroot display for battle phase - positioned in center Y between two grids
-    // Shown by default in battle phase
-    const centerY = GRID_OFFSET_Y + (this.gridSize * GRID_TILE_SIZE) / 2; // Center Y of grids
+    // Baroot display for battle phase - positioned on right side, vertically centered
+    const panelX = 1000; // Right side, same as unit panel
+    const screenHeight = 800; // Assuming screen height
+    const barootY = screenHeight / 2; // Center vertically
     
-    this.budgetText = this.add.text(centerX, centerY, 'مقدار باروت: 0', {
+    this.budgetText = this.add.text(panelX, barootY, 'مقدار باروت: 0', {
       fontSize: '24px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    }).setOrigin(0.5, 0.5).setDepth(100); // Center both X and Y
+    }).setOrigin(0, 0.5).setDepth(100); // Left align horizontally, center vertically
     
     // Show baroot text in battle phase by default, hide in build phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
@@ -495,12 +496,18 @@ export class GameRenderer extends Phaser.Scene {
       this.budgetText.setVisible(false);
     }
     
-    // Turn indicator
-    this.turnText = this.add.text(50, 130, '', {
+    // Turn indicator - positioned above battle timer (center between grids)
+    // Battle timer is at panelX = 1000, panelY - 30 = 120
+    // So turn text should be at centerX (between grids) and above battle timer
+    const battleTimerY = 120; // panelY - 30 where panelY = 150
+    const turnTextY = battleTimerY - 30; // Above battle timer
+    
+    this.turnText = this.add.text(centerX, turnTextY, '', {
       fontSize: '18px',
       color: '#ffd700',
-      fontFamily: 'Vazirmatn, Tahoma'
-    });
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
+    }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
     
     // Remove any leftover explosion sprites from previous renders
     if (this.explosionSprites) {
