@@ -3001,8 +3001,21 @@ export class GameRenderer extends Phaser.Scene {
       launcherId: data.launcherId,
       attackerId: data.attackerId,
       pathLength: data.pathTiles?.length || 0,
-      hasDamage: !!data.damage
+      hasDamage: !!data.damage,
+      isMyShot: data.attackerId === this.gameState.playerId
     });
+    
+    // Remove shot from pending shots if it's our shot
+    if (data.attackerId === this.gameState.playerId) {
+      const shotIndex = this.pendingShots.findIndex(s => s.launcherId === data.launcherId);
+      if (shotIndex >= 0) {
+        this.pendingShots.splice(shotIndex, 1);
+        logger.info('Removed shot from pending shots', {
+          launcherId: data.launcherId,
+          remainingShots: this.pendingShots.length
+        });
+      }
+    }
     
     if (data.intercepted) {
       this.onNotification(faTexts.notifications.missileIntercepted);
