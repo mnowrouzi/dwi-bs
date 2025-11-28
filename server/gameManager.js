@@ -196,6 +196,9 @@ export class GameManager {
     if (!this.allPlayersHaveLaunchers()) {
       logger.room(this.roomId, 'Cannot start battle phase - not all players have launchers');
       
+      // Ensure we're in BUILD phase
+      this.phase = GAME_PHASES.BUILD;
+      
       // Reset ready state so players can add launchers and try again
       this.players.forEach((player, playerId) => {
         player.ready = false;

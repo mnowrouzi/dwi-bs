@@ -182,6 +182,8 @@ function handleReadyToStart(ws, data) {
   // Check if all players have launchers before forcing battle phase
   if (!gameManager.allPlayersHaveLaunchers()) {
     logger.room(roomId, 'Cannot force start battle - not all players have launchers');
+    // Ensure we're in BUILD phase
+    gameManager.phase = GAME_PHASES.BUILD;
     // Don't mark players as ready, keep them in build phase
     gameManager.broadcast({
       type: MESSAGE_TYPES.ERROR,
