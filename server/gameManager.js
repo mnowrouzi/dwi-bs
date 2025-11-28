@@ -10,11 +10,9 @@ export class GameManager {
   constructor(roomId, config) {
     this.roomId = roomId;
     this.config = config;
-    this.players = new Map(); // playerId -> { ws, units, ready, mana, shotsThisTurn, launcherShotsThisTurn }
+    this.players = new Map(); // playerId -> { ws, units, ready, mana, shotsThisTurn, launcherShotsThisTurn, buildBudget }
     this.phase = GAME_PHASES.WAITING;
     this.currentTurn = null;
-    // Shared budget for both players
-    this.sharedBuildBudget = config.buildBudget;
   }
 
   addPlayer(playerId, ws) {
@@ -27,8 +25,8 @@ export class GameManager {
       ready: false,
       mana: this.config.mana.startMana,
       shotsThisTurn: 0,
-      launcherShotsThisTurn: new Map() // launcherId -> count
-      // Note: buildBudget is now shared, not per player
+      launcherShotsThisTurn: new Map(), // launcherId -> count
+      buildBudget: this.config.buildBudget // Each player has their own build budget
     });
   }
 
@@ -46,14 +44,21 @@ export class GameManager {
 
   startBuildPhase() {
     this.phase = GAME_PHASES.BUILD;
-    // Reset shared budget when build phase starts
-    this.sharedBuildBudget = this.config.buildBudget;
-    logger.room(this.roomId, 'Build phase started', { sharedBuildBudget: this.sharedBuildBudget });
-    this.broadcast({
-      type: MESSAGE_TYPES.BUILD_PHASE_STATE,
-      phase: GAME_PHASES.BUILD,
-      buildBudget: this.sharedBuildBudget,
-      gridSize: this.config.gridSize
+    // Reset each player's budget when build phase starts
+    this.players.forEach((player, playerId) => {
+      player.buildBudget = this.config.buildBudget;
+      logger.player(playerId, `Build budget reset to ${player.buildBudget}`);
+    });
+    logger.room(this.roomId, 'Build phase started');
+    
+    // Send build phase state to each player with their own budget
+    this.players.forEach((player, playerId) => {
+      player.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+        phase: GAME_PHASES.BUILD,
+        buildBudget: player.buildBudget,
+        gridSize: this.config.gridSize
+      }));
     });
   }
 
@@ -130,8 +135,8 @@ export class GameManager {
     // Refund old units cost and deduct new units cost
     const costDifference = totalCost - oldCost;
     
-    // Check if we have enough budget for the difference
-    if (costDifference > this.sharedBuildBudget) {
+    // Check if player has enough budget for the difference
+    if (costDifference > player.buildBudget) {
       return { success: false, error: 'Insufficient budget' };
     }
 
@@ -156,21 +161,21 @@ export class GameManager {
     player.units.launchers = placedUnits.launchers;
     player.units.defenses = placedUnits.defenses;
     
-    // Update shared budget (refund old, deduct new)
-    this.sharedBuildBudget -= costDifference;
+    // Update player's budget (refund old, deduct new)
+    player.buildBudget -= costDifference;
     
-    // Broadcast updated budget to all players
-    this.broadcast({
+    // Send updated budget only to the player who placed units
+    player.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.BUILD_PHASE_STATE,
       phase: GAME_PHASES.BUILD,
-      buildBudget: this.sharedBuildBudget,
+      buildBudget: player.buildBudget,
       gridSize: this.config.gridSize
-    });
+    }));
 
     return {
       success: true,
       units: placedUnits,
-      remainingBudget: this.sharedBuildBudget
+      remainingBudget: player.buildBudget
     };
   }
 
@@ -222,12 +227,14 @@ export class GameManager {
         message: 'همه بازیکنان باید حداقل یک موشک‌انداز در زمین داشته باشند'
       });
       
-      // Broadcast BUILD_PHASE_STATE to keep players in build phase
-      this.broadcast({
-        type: MESSAGE_TYPES.BUILD_PHASE_STATE,
-        phase: GAME_PHASES.BUILD,
-        buildBudget: this.sharedBuildBudget,
-        gridSize: this.config.gridSize
+      // Send BUILD_PHASE_STATE to each player with their own budget
+      this.players.forEach((player, playerId) => {
+        player.ws.send(JSON.stringify({
+          type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+          phase: GAME_PHASES.BUILD,
+          buildBudget: player.buildBudget,
+          gridSize: this.config.gridSize
+        }));
       });
       
       return;

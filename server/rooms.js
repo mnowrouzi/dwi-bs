@@ -190,11 +190,14 @@ function handleReadyToStart(ws, data) {
       message: 'همه بازیکنان باید حداقل یک موشک‌انداز در زمین داشته باشند'
     });
     // Keep in BUILD phase - don't reset ready states here, let players manually ready
-    gameManager.broadcast({
-      type: MESSAGE_TYPES.BUILD_PHASE_STATE,
-      phase: GAME_PHASES.BUILD,
-      buildBudget: gameManager.sharedBuildBudget,
-      gridSize: gameManager.config.gridSize
+    // Send BUILD_PHASE_STATE to each player with their own budget
+    gameManager.players.forEach((player, playerId) => {
+      player.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+        phase: GAME_PHASES.BUILD,
+        buildBudget: player.buildBudget,
+        gridSize: gameManager.config.gridSize
+      }));
     });
     return;
   }
