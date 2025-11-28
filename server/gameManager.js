@@ -406,10 +406,13 @@ export class GameManager {
       player.mana = Math.max(0, player.mana);
     }
 
+    // Broadcast mana update for all players (so both clients update)
     this.broadcast({
       type: MESSAGE_TYPES.MANA_UPDATE,
-      playerId,
-      mana: player.mana
+      mana: {
+        player1: this.players.get('player1').mana,
+        player2: this.players.get('player2').mana
+      }
     });
   }
 

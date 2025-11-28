@@ -2353,8 +2353,20 @@ export class GameRenderer extends Phaser.Scene {
         break;
       
       case MESSAGE_TYPES.MANA_UPDATE:
-        this.mana = data.mana;
-        this.manaBar.updateMana(data.mana);
+        // Update mana for current player
+        if (data.mana && typeof data.mana === 'object') {
+          // New format: { player1: X, player2: Y }
+          this.mana = data.mana[this.gameState?.playerId] || this.mana;
+        } else {
+          // Old format: single number
+          this.mana = data.mana || this.mana;
+        }
+        logger.info('Mana updated from server', {
+          newMana: this.mana,
+          playerId: this.gameState?.playerId,
+          dataMana: data.mana
+        });
+        this.manaBar.updateMana(this.mana);
         break;
       
       case MESSAGE_TYPES.TURN_CHANGE:
