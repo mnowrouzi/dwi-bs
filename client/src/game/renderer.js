@@ -504,18 +504,22 @@ export class GameRenderer extends Phaser.Scene {
       this.budgetText.setVisible(false);
     }
     
-    // Turn indicator - positioned above battle timer (center between grids)
-    // Battle timer is at panelX = 1000, panelY - 30 = 120 (where panelY = 150)
-    // So turn text should be at centerX (between grids) and above battle timer
-    const battleTimerY = 120; // panelY - 30 where panelY = 150
-    const turnTextY = battleTimerY - 10; // Slightly above battle timer (110) - moved down
+    // Turn indicator - positioned in center between grids
+    // Grid labels are at offsetY - 50 = 200 (where offsetY = 250)
+    // Turn text should be below grid labels
+    const turnTextY = GRID_OFFSET_Y - 20; // Below grid labels (which are at offsetY - 50)
     
     this.turnText = this.add.text(centerX, turnTextY, '', {
       fontSize: '22px', // Larger size (was 18px)
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      padding: { x: 10, y: 5 }
     }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
+    
+    // Battle timer will be positioned below turnText with same width as grid labels
+    // Grid labels width is approximately gridWidth (400px for 10x10 grid)
+    const gridLabelWidth = this.gridSize * GRID_TILE_SIZE; // Same width as grid labels
     
     // Remove any leftover explosion sprites from previous renders
     if (this.explosionSprites) {
@@ -2849,21 +2853,26 @@ export class GameRenderer extends Phaser.Scene {
     const turnTime = this.turnTimeSeconds;
     let timeLeft = turnTime;
     
-    // Position battle timer on right side (where buttons are in build phase)
-    const panelX = 1000; // Right side, same as unit panel
-    const panelY = 150; // Same as unit panel start
+    // Position battle timer below turnText, centered between grids, with same width as grid labels
+    const separatorWidth = 20;
+    const gridWidth = this.gridSize * GRID_TILE_SIZE;
+    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    const turnTextY = GRID_OFFSET_Y - 20; // Same as turnText
+    const timerY = turnTextY + 35; // Below turnText (22px font + some spacing)
+    const gridLabelWidth = this.gridSize * GRID_TILE_SIZE; // Same width as grid labels
     
     // Create or update timer text
     if (!this.battleTurnTimerText) {
-      this.battleTurnTimerText = this.add.text(panelX, panelY - 30, `زمان نوبت: ${timeLeft} ثانیه`, {
+      this.battleTurnTimerText = this.add.text(centerX, timerY, `زمان نوبت: ${timeLeft} ثانیه`, {
         fontSize: '18px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma',
         fontWeight: 'bold',
         padding: { x: 10, y: 5 },
         backgroundColor: '#1c1f22',
-        padding: { x: 15, y: 8 }
-      }).setOrigin(0, 0).setDepth(100);
+        fixedWidth: gridLabelWidth, // Same width as grid labels
+        align: 'center'
+      }).setOrigin(0.5, 0).setDepth(100);
     } else {
       this.battleTurnTimerText.setVisible(true);
       this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
