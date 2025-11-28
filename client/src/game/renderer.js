@@ -481,7 +481,7 @@ export class GameRenderer extends Phaser.Scene {
     // FIRE button is at fireButtonX = 1000, fireButtonY = 600
     const panelX = 1000; // Right side, same as unit panel
     const fireButtonY = 600; // FIRE button Y position
-    const barootY = fireButtonY - 50; // Above FIRE button (550)
+    const barootY = fireButtonY - 250; // Above FIRE button (550)
     
     this.budgetText = this.add.text(panelX, barootY, 'مقدار باروت: 0', {
       fontSize: '24px',
