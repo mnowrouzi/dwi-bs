@@ -2758,9 +2758,11 @@ export class GameRenderer extends Phaser.Scene {
       this.buildBudgetText.setVisible(false);
     }
     
-    // Hide baroot display initially (will show when launcher is selected)
+    // Show baroot display in battle phase (by default)
     if (this.budgetText) {
-      this.budgetText.setVisible(false);
+      this.budgetText.setVisible(true);
+      // Update baroot display to show current value (0 if no launcher selected)
+      this.updateBarootDisplay();
     }
     
     // Hide unit panel buttons in battle phase
