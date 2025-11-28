@@ -481,7 +481,7 @@ export class GameRenderer extends Phaser.Scene {
     // FIRE button is at fireButtonX = 1000, fireButtonY = 600
     const panelX = 1000; // Right side, same as unit panel
     const fireButtonY = 600; // FIRE button Y position
-    const barootY = fireButtonY - 250; // Above FIRE button (550)
+    const barootY = fireButtonY - 300; // Above FIRE button (300)
     
     this.budgetText = this.add.text(panelX, barootY, 'مقدار باروت: 0', {
       fontSize: '24px',
@@ -1847,27 +1847,14 @@ export class GameRenderer extends Phaser.Scene {
     
     if (!this.budgetText) return;
     
-    // If barootAmount is provided (from launcher selection), use it
-    // Otherwise calculate based on current path and selected launcher
-    let baroot = barootAmount;
-    
-    if (baroot === null || baroot === undefined) {
-      // Calculate based on selected launcher and path
-      if (this.selectedLauncherForShots && this.currentPathTiles && this.currentPathTiles.length > 0) {
-        const launcherConfig = this.config.launchers.find(c => c.id === this.selectedLauncherForShots.type);
-        if (launcherConfig) {
-          // Use launcher's manaCost as base, can be modified by path length if needed
-          baroot = launcherConfig.manaCost;
-        }
-      } else {
-        baroot = 0;
-      }
-    }
+    // Baroot should show current mana (available mana for this turn)
+    // Not the launcher cost, but the player's current mana
+    let baroot = this.mana || 0;
     
     // Ensure position is correct (right side, above FIRE button)
     const panelX = 1000; // Right side
     const fireButtonY = 600; // FIRE button Y position
-    const barootY = fireButtonY - 50; // Above FIRE button
+    const barootY = fireButtonY - 300; // Above FIRE button (300)
     
     this.budgetText.setPosition(panelX, barootY);
     this.budgetText.setText(`مقدار باروت: ${baroot}`);
@@ -1877,7 +1864,7 @@ export class GameRenderer extends Phaser.Scene {
       x: panelX,
       y: barootY,
       baroot: baroot,
-      hasSelectedLauncher: !!this.selectedLauncherForShots
+      currentMana: this.mana
     });
   }
   
@@ -2432,7 +2419,10 @@ export class GameRenderer extends Phaser.Scene {
           playerId: this.gameState?.playerId,
           dataMana: data.mana
         });
-        // Mana bar removed - no need to update UI
+        // Update baroot display with new mana
+        if (this.currentPhase === GAME_PHASES.BATTLE) {
+          this.updateBarootDisplay();
+        }
         break;
       
       case MESSAGE_TYPES.TURN_CHANGE:
@@ -2786,12 +2776,12 @@ export class GameRenderer extends Phaser.Scene {
       this.buildBudgetText.setVisible(false);
     }
     
-    // Show baroot display in battle phase (by default)
-    // Also update position to ensure it's in the right place
-    if (this.budgetText) {
-      const panelX = 1000; // Right side
-      const fireButtonY = 600; // FIRE button Y position
-      const barootY = fireButtonY - 50; // Above FIRE button
+      // Show baroot display in battle phase (by default)
+      // Also update position to ensure it's in the right place
+      if (this.budgetText) {
+        const panelX = 1000; // Right side
+        const fireButtonY = 600; // FIRE button Y position
+        const barootY = fireButtonY - 300; // Above FIRE button (300)
       
       // Update position to ensure it's correct
       this.budgetText.setPosition(panelX, barootY);
