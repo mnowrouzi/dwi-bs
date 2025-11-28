@@ -507,8 +507,8 @@ export class GameRenderer extends Phaser.Scene {
     // Turn indicator - positioned above battle timer in center between grids
     // Battle timer will be at turnTextY + 35
     // So turn text should be above timer
-    const battleTimerY = GRID_OFFSET_Y - 20; // Timer position (below grid labels)
-    const turnTextY = battleTimerY - 35; // Above battle timer
+    const battleTimerY = GRID_OFFSET_Y - 120; // Timer position (below grid labels)
+    const turnTextY = battleTimerY - 15; // Above battle timer
     
     this.turnText = this.add.text(centerX, turnTextY, '', {
       fontSize: '22px', // Larger size (was 18px)
@@ -2148,7 +2148,30 @@ export class GameRenderer extends Phaser.Scene {
     this.readyButtonText.setText(faTexts.notifications.waitingForOpponent);
     this.readyButtonText.setColor('#999999');
     
+    // Hide build phase UI elements when ready
+    this.hideBuildPhaseUI();
+    
     this.onNotification(faTexts.notifications.waitingForOpponent);
+  }
+  
+  hideBuildPhaseUI() {
+    // Hide build phase timer
+    if (this.buildPhaseTimer) {
+      clearInterval(this.buildPhaseTimer);
+      this.buildPhaseTimer = null;
+    }
+    if (this.timerText) {
+      this.timerText.destroy();
+      this.timerText = null;
+    }
+    
+    // Hide build budget text
+    if (this.buildBudgetText) {
+      this.buildBudgetText.setVisible(false);
+    }
+    
+    // Hide unit panel (launcher and defense buttons)
+    this.hideUnitPanelInBattle();
   }
 
   placeRandomLauncher() {
@@ -2748,6 +2771,9 @@ export class GameRenderer extends Phaser.Scene {
           playerId: this.gameState.playerId,
           isReady: this.isReady
         });
+        
+        // Hide build phase UI elements when timer expires
+        this.hideBuildPhaseUI();
         
         // Check if player has any launchers
         const launchers = this.playerUnits?.launchers || [];
