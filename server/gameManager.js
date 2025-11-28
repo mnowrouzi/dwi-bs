@@ -63,7 +63,18 @@ export class GameManager {
       return { success: false, error: 'Player not found' };
     }
 
+    logger.room(this.roomId, `placeUnits called by ${playerId}`, {
+      currentPhase: this.phase,
+      expectedPhase: GAME_PHASES.BUILD,
+      playerCount: this.players.size,
+      unitsCount: units?.length || 0
+    });
+
     if (this.phase !== GAME_PHASES.BUILD) {
+      logger.room(this.roomId, `Cannot place units - not in build phase`, {
+        currentPhase: this.phase,
+        expectedPhase: GAME_PHASES.BUILD
+      });
       return { success: false, error: 'Not in build phase' };
     }
 
