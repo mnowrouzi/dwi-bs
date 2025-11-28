@@ -2327,12 +2327,24 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleServerMessage(data) {
+    logger.info('handleServerMessage called', {
+      messageType: data.type,
+      playerId: this.gameState?.playerId,
+      currentPhase: this.currentPhase,
+      hasData: !!data
+    });
+    
     switch (data.type) {
       case MESSAGE_TYPES.ROOM_UPDATE:
         this.handleRoomUpdate(data);
         break;
       
       case MESSAGE_TYPES.BUILD_PHASE_STATE:
+        logger.info('BUILD_PHASE_STATE message received, calling handleBuildPhaseState', {
+          data: data,
+          playerId: this.gameState?.playerId,
+          currentPhase: this.currentPhase
+        });
         this.handleBuildPhaseState(data);
         break;
       
