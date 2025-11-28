@@ -251,8 +251,21 @@ export class GameManager {
     logger.room(this.roomId, 'Battle phase started');
     
     // Reset mana and shots for both players
-    this.players.forEach((player) => {
-      player.mana = this.config.mana.startMana;
+    // Player1 gets manaPerTurn added because they're starting the first turn
+    // Player2 starts with startMana only (they'll get manaPerTurn when their turn starts)
+    this.players.forEach((player, playerId) => {
+      if (playerId === 'player1') {
+        // Player1 gets startMana + manaPerTurn for their first turn
+        player.mana = Math.min(
+          this.config.mana.startMana + this.config.mana.manaPerTurn,
+          this.config.mana.maxMana
+        );
+        logger.player(playerId, `First turn mana: ${this.config.mana.startMana} + ${this.config.mana.manaPerTurn} = ${player.mana}`);
+      } else {
+        // Player2 starts with just startMana (will get manaPerTurn when turn switches to them)
+        player.mana = this.config.mana.startMana;
+        logger.player(playerId, `Initial mana: ${player.mana} (will get +${this.config.mana.manaPerTurn} when turn starts)`);
+      }
       player.shotsThisTurn = 0;
       player.launcherShotsThisTurn = new Map();
     });
