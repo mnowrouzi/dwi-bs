@@ -246,17 +246,33 @@ export class GameRenderer extends Phaser.Scene {
     // This ensures timer starts even if BUILD_PHASE_STATE was received before create() completed
     if (this.gameState?.playerId === 'player2') {
       // Use a small delay to ensure everything is initialized (buttons, UI, etc.)
-      this.time.delayedCall(200, () => {
+      this.time.delayedCall(500, () => {
+        // If still WAITING after 500ms, force start build phase (BUILD_PHASE_STATE might have been missed)
         if (this.currentPhase === GAME_PHASES.WAITING) {
-          logger.info('Player2: Still in WAITING phase after create(), checking for pending BUILD_PHASE_STATE', {
+          logger.warn('Player2: Still in WAITING phase after 500ms, forcing BUILD phase start', {
             currentPhase: this.currentPhase,
             hasBuildPhaseTimer: !!this.buildPhaseTimer,
             hasTimerText: !!this.timerText,
             isReady: this.isReady,
             buildBudget: this.buildBudget
           });
-          // If still WAITING, it means BUILD_PHASE_STATE hasn't been received yet
-          // It should arrive soon from the server
+          
+          // Force set phase to BUILD and start timer
+          this.currentPhase = GAME_PHASES.BUILD;
+          this.onPhaseChange(this.currentPhase);
+          this.showUnitPanelInBuild();
+          
+          // Hide FIRE button in build phase
+          if (this.fireButton) {
+            this.fireButton.setVisible(false);
+            this.fireButtonText.setVisible(false);
+          }
+          
+          // Start timer if not already started
+          if (!this.buildPhaseTimer && !this.timerText && !this.isReady) {
+            logger.info('Player2: Starting build phase timer (forced)');
+            this.startBuildPhaseTimer();
+          }
         } else if (this.currentPhase === GAME_PHASES.BUILD) {
           logger.info('Player2: Already in BUILD phase, starting timer if needed', {
             currentPhase: this.currentPhase,
