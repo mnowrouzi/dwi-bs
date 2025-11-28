@@ -458,16 +458,19 @@ export class GameRenderer extends Phaser.Scene {
   setupUI() {
     // Mana bar - REMOVED as per user request
     
-    // Budget display for build phase - positioned on right side (where buttons are)
-    const panelX = 1000; // Right side, same as unit panel
-    const panelY = 150; // Same as unit panel start
+    // Build budget text - positioned above build phase timer (center between grids)
+    const separatorWidth = 20;
+    const gridWidth = this.gridSize * GRID_TILE_SIZE;
+    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    const buildTimerY = GRID_OFFSET_Y - 50; // Timer position
+    const buildBudgetY = buildTimerY - 30; // Above timer
     
     // Build budget text (only shown in build phase)
-    this.buildBudgetText = this.add.text(panelX, panelY - 30, `بودجه ساخت: ${this.buildBudget}`, {
+    this.buildBudgetText = this.add.text(centerX, buildBudgetY, `بودجه ساخت: ${this.buildBudget}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
-    }).setOrigin(0, 0).setDepth(100);
+    }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
     
     // Hide build budget in battle phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
@@ -475,10 +478,7 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Baroot display for battle phase - positioned in center Y between two grids
-    // Only shown in battle phase when launcher is selected
-    const separatorWidth = 20;
-    const gridWidth = this.gridSize * GRID_TILE_SIZE;
-    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    // Shown by default in battle phase
     const centerY = GRID_OFFSET_Y + (this.gridSize * GRID_TILE_SIZE) / 2; // Center Y of grids
     
     this.budgetText = this.add.text(centerX, centerY, 'مقدار باروت: 0', {
@@ -488,8 +488,12 @@ export class GameRenderer extends Phaser.Scene {
       fontWeight: 'bold'
     }).setOrigin(0.5, 0.5).setDepth(100); // Center both X and Y
     
-    // Hide baroot text initially (will show when launcher is selected in battle phase)
-    this.budgetText.setVisible(false);
+    // Show baroot text in battle phase by default, hide in build phase
+    if (this.currentPhase === GAME_PHASES.BATTLE) {
+      this.budgetText.setVisible(true);
+    } else {
+      this.budgetText.setVisible(false);
+    }
     
     // Turn indicator
     this.turnText = this.add.text(50, 130, '', {
