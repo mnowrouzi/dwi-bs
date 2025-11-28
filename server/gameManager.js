@@ -333,8 +333,19 @@ export class GameManager {
     // Validate mana
     const manaCheck = validateMana(player, launcher.config, this.config.mana);
     if (!manaCheck.success) {
+      logger.player(playerId, `Mana validation failed`, {
+        currentMana: player.mana,
+        requiredMana: launcher.config.manaCost,
+        launcherType: launcher.config.id
+      });
       return { success: false, error: manaCheck.error };
     }
+    
+    logger.player(playerId, `Mana validation passed`, {
+      currentMana: player.mana,
+      requiredMana: launcher.config.manaCost,
+      launcherType: launcher.config.id
+    });
 
     // Validate shots per turn
     if (player.shotsThisTurn >= this.config.mana.maxShotsPerTurn) {
@@ -351,8 +362,18 @@ export class GameManager {
     // Validate path
     const pathCheck = validatePath(pathTiles, launcher.config.range, this.config.gridSize);
     if (!pathCheck.success) {
+      logger.player(playerId, `Path validation failed`, {
+        pathLength: pathTiles.length,
+        maxRange: launcher.config.range,
+        error: pathCheck.error
+      });
       return { success: false, error: pathCheck.error };
     }
+    
+    logger.player(playerId, `Path validation passed`, {
+      pathLength: pathTiles.length,
+      maxRange: launcher.config.range
+    });
 
     // Get opponent
     const opponentId = playerId === 'player1' ? 'player2' : 'player1';

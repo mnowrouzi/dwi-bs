@@ -6,7 +6,7 @@
     "startMana": 0,
     "maxMana": 10,
     "manaPerTurn": 2,
-    "maxShotsPerTurn": 2,
+    "maxShotsPerTurn": 1,
     "maxShotsPerLauncherPerTurn": 1
   },
   "battle": {

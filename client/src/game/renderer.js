@@ -2461,12 +2461,15 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // Check if enough mana
+    // Check if enough mana (client-side validation - server will also validate)
     if (this.mana < launcherConfig.manaCost) {
-      logger.warn('fireAllShots: Not enough mana', {
+      logger.warn('fireAllShots: Not enough mana (client-side check)', {
         mana: this.mana,
-        required: launcherConfig.manaCost
+        required: launcherConfig.manaCost,
+        launcherType: launcherConfig.id
       });
+      this.onNotification(`مانا کافی نیست. نیاز به ${launcherConfig.manaCost} مانا دارید.`);
+      this.audioController.playSound('error');
       return; // Not enough mana
     }
     
@@ -2474,6 +2477,8 @@ export class GameRenderer extends Phaser.Scene {
     logger.info('Sending shot request to server', {
       launcherId: this.selectedLauncherForShots.id,
       pathLength: this.currentPathTiles.length,
+      currentMana: this.mana,
+      requiredMana: launcherConfig.manaCost,
       pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
     });
       this.gameState.ws.send(JSON.stringify({
