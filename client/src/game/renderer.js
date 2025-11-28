@@ -2160,56 +2160,95 @@ export class GameRenderer extends Phaser.Scene {
       hasTimerText: !!this.timerText,
       hasBuildBudgetText: !!this.buildBudgetText,
       hasLauncherButtonsGroup: !!this.launcherButtonsGroup,
-      hasDefenseButtonsGroup: !!this.defenseButtonsGroup
+      hasDefenseButtonsGroup: !!this.defenseButtonsGroup,
+      launcherButtonsCount: this.launcherButtonsGroup?.buttons?.length || 0,
+      defenseButtonsCount: this.defenseButtonsGroup?.buttons?.length || 0
     });
     
     // Hide build phase timer
     if (this.buildPhaseTimer) {
       clearInterval(this.buildPhaseTimer);
       this.buildPhaseTimer = null;
+      logger.info('Build phase timer cleared');
     }
     if (this.timerText) {
       this.timerText.destroy();
       this.timerText = null;
+      logger.info('Timer text destroyed');
     }
     
     // Hide build budget text
     if (this.buildBudgetText) {
       this.buildBudgetText.setVisible(false);
       logger.info('Build budget text hidden');
+    } else {
+      logger.warn('buildBudgetText is null or undefined');
     }
     
     // Hide launcher buttons and their texts
     if (this.launcherButtonsGroup) {
       if (this.launcherButtonsGroup.label) {
         this.launcherButtonsGroup.label.setVisible(false);
+        logger.info('Launcher label hidden');
       }
-      this.launcherButtonsGroup.buttons.forEach(buttonData => {
-        if (buttonData.btn) buttonData.btn.setVisible(false);
-        if (buttonData.titleText) buttonData.titleText.setVisible(false);
-        if (buttonData.costText) buttonData.costText.setVisible(false);
-      });
-      logger.info('Launcher buttons hidden', {
-        buttonCount: this.launcherButtonsGroup.buttons.length
-      });
+      if (this.launcherButtonsGroup.buttons && Array.isArray(this.launcherButtonsGroup.buttons)) {
+        this.launcherButtonsGroup.buttons.forEach((buttonData, index) => {
+          if (buttonData.btn) {
+            buttonData.btn.setVisible(false);
+            logger.info(`Launcher button ${index} hidden`);
+          }
+          if (buttonData.titleText) {
+            buttonData.titleText.setVisible(false);
+            logger.info(`Launcher titleText ${index} hidden`);
+          }
+          if (buttonData.costText) {
+            buttonData.costText.setVisible(false);
+            logger.info(`Launcher costText ${index} hidden`);
+          }
+        });
+        logger.info('All launcher buttons hidden', {
+          buttonCount: this.launcherButtonsGroup.buttons.length
+        });
+      } else {
+        logger.warn('launcherButtonsGroup.buttons is not an array or is undefined');
+      }
+    } else {
+      logger.warn('launcherButtonsGroup is null or undefined');
     }
     
     // Hide defense buttons and their texts
     if (this.defenseButtonsGroup) {
       if (this.defenseButtonsGroup.label) {
         this.defenseButtonsGroup.label.setVisible(false);
+        logger.info('Defense label hidden');
       }
-      this.defenseButtonsGroup.buttons.forEach(buttonData => {
-        if (buttonData.btn) buttonData.btn.setVisible(false);
-        if (buttonData.titleText) buttonData.titleText.setVisible(false);
-        if (buttonData.costText) buttonData.costText.setVisible(false);
-      });
-      logger.info('Defense buttons hidden', {
-        buttonCount: this.defenseButtonsGroup.buttons.length
-      });
+      if (this.defenseButtonsGroup.buttons && Array.isArray(this.defenseButtonsGroup.buttons)) {
+        this.defenseButtonsGroup.buttons.forEach((buttonData, index) => {
+          if (buttonData.btn) {
+            buttonData.btn.setVisible(false);
+            logger.info(`Defense button ${index} hidden`);
+          }
+          if (buttonData.titleText) {
+            buttonData.titleText.setVisible(false);
+            logger.info(`Defense titleText ${index} hidden`);
+          }
+          if (buttonData.costText) {
+            buttonData.costText.setVisible(false);
+            logger.info(`Defense costText ${index} hidden`);
+          }
+        });
+        logger.info('All defense buttons hidden', {
+          buttonCount: this.defenseButtonsGroup.buttons.length
+        });
+      } else {
+        logger.warn('defenseButtonsGroup.buttons is not an array or is undefined');
+      }
+    } else {
+      logger.warn('defenseButtonsGroup is null or undefined');
     }
     
     // Note: We don't hide the ready button here - it should remain visible but disabled
+    logger.info('hideBuildPhaseUI completed');
   }
 
   placeRandomLauncher() {
