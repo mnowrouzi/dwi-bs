@@ -2449,18 +2449,36 @@ export class GameRenderer extends Phaser.Scene {
   startBuildPhaseTimer() {
     // Clear any existing timer
     if (this.buildPhaseTimer) {
-      clearTimeout(this.buildPhaseTimer);
+      clearInterval(this.buildPhaseTimer);
+      this.buildPhaseTimer = null;
     }
+    if (this.timerText) {
+      this.timerText.destroy();
+      this.timerText = null;
+    }
+    
+    logger.info('startBuildPhaseTimer called', {
+      playerId: this.gameState.playerId,
+      currentPhase: this.currentPhase,
+      isReady: this.isReady
+    });
     
     // Start 30-second countdown - position timer below budget text to avoid overlap
     let timeLeft = 30;
-    this.timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 35, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
+    this.timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 70, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
       fontSize: '16px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold',
       padding: { x: 10, y: 5 }
     }).setOrigin(0, 0).setDepth(100);
+    
+    logger.info('Timer text created', {
+      x: GRID_OFFSET_X,
+      y: GRID_OFFSET_Y - 70,
+      timeLeft,
+      timerTextVisible: this.timerText.visible
+    });
     
     const countdown = setInterval(() => {
       timeLeft--;
