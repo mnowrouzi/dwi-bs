@@ -2815,6 +2815,16 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   startBattleTurnTimer() {
+    // Only start timer if it's the player's turn
+    if (this.currentTurn !== this.gameState.playerId) {
+      logger.info('Not starting battle timer - not player turn', {
+        currentTurn: this.currentTurn,
+        playerId: this.gameState.playerId
+      });
+      this.stopBattleTurnTimer();
+      return;
+    }
+    
     // Clear existing timer
     this.stopBattleTurnTimer();
     
@@ -2839,6 +2849,7 @@ export class GameRenderer extends Phaser.Scene {
     } else {
       this.battleTurnTimerText.setVisible(true);
       this.battleTurnTimerText.setText(`زمان نوبت: ${timeLeft} ثانیه`);
+      this.battleTurnTimerText.setColor('#ffd700'); // Reset color
     }
     
     // Update timer every second
