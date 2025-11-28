@@ -497,6 +497,16 @@ export class GameRenderer extends Phaser.Scene {
       visible: this.currentPhase === GAME_PHASES.BATTLE
     });
     
+    // Launcher info display - positioned below baroot text
+    const launcherInfoY = barootY + 40; // Below baroot text
+    this.launcherInfoText = this.add.text(panelX, launcherInfoY, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Vazirmatn, Tahoma',
+      align: 'left',
+      wordWrap: { width: 200 }
+    }).setOrigin(0, 0).setDepth(100).setVisible(false); // Hidden by default
+    
     // Show baroot text in battle phase by default, hide in build phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
       this.budgetText.setVisible(true);
@@ -1159,6 +1169,9 @@ export class GameRenderer extends Phaser.Scene {
             
             // Show and update baroot amount based on launcher
             this.updateBarootDisplay(launcherConfig.manaCost);
+            
+            // Show launcher info (range, mana cost, explosion radius)
+            this.updateLauncherInfo(launcherConfig);
             
             // Keep FIRE button enabled (it's always active during player's turn)
             // User can fire if path is drawn, or end turn if no path
@@ -1845,6 +1858,45 @@ export class GameRenderer extends Phaser.Scene {
       this.launcherHighlightGraphics.destroy();
       this.launcherHighlightGraphics = null;
     }
+    // Hide launcher info when launcher is deselected
+    if (this.launcherInfoText) {
+      this.launcherInfoText.setVisible(false);
+    }
+  }
+  
+  updateLauncherInfo(launcherConfig) {
+    if (this.currentPhase !== GAME_PHASES.BATTLE) return;
+    
+    if (!this.launcherInfoText || !launcherConfig) return;
+    
+    // Get explosion radius from aoe (Area of Effect)
+    const aoeWidth = launcherConfig.aoe?.[0] || 0;
+    const aoeHeight = launcherConfig.aoe?.[1] || 0;
+    const explosionRadius = Math.max(aoeWidth, aoeHeight);
+    
+    // Build info text
+    const infoLines = [
+      `برد: ${launcherConfig.range || 0}`,
+      `هزینه هر شلیک: ${launcherConfig.manaCost || 0}`,
+      `محدوده انفجار: ${explosionRadius}x${explosionRadius}`
+    ];
+    
+    // Position below baroot text
+    const panelX = 1000; // Right side
+    const fireButtonY = 600; // FIRE button Y position
+    const barootY = fireButtonY - 300; // Above FIRE button (300)
+    const launcherInfoY = barootY + 40; // Below baroot text
+    
+    this.launcherInfoText.setPosition(panelX, launcherInfoY);
+    this.launcherInfoText.setText(infoLines.join('\n'));
+    this.launcherInfoText.setVisible(true);
+    
+    logger.info('Launcher info updated', {
+      range: launcherConfig.range,
+      manaCost: launcherConfig.manaCost,
+      explosionRadius: explosionRadius,
+      aoe: launcherConfig.aoe
+    });
   }
   
   updateBarootDisplay(barootAmount = null) {

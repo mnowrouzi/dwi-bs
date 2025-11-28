@@ -1,6 +1,6 @@
 {
   "name": "dwi-bs-client",
-  "version": "0.0.138",
+  "version": "0.0.139",
   "type": "module",
   "scripts": {
     "dev": "vite",
