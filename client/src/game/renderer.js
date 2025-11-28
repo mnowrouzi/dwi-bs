@@ -3213,30 +3213,27 @@ export class GameRenderer extends Phaser.Scene {
       
       // Convert pathTiles to format expected by animateMissile (with isPlayerGrid)
       // Path always starts from attacker's grid and can cross to opponent grid
-      // Determine which grid each tile belongs to based on attacker
+      // Determine which grid each tile belongs to based on attacker and viewer
       const isAttackerPlayer1 = data.attackerId === 'player1';
+      const isViewerPlayer1 = this.gameState.playerId === 'player1';
+      
+      // Player1's grid is always on the left (x < gridSize)
+      // Player2's grid is always on the right (x >= gridSize)
+      // isPlayerGrid means: is this tile in the VIEWER's grid?
       const formattedPathTiles = data.pathTiles.map((tile, index) => {
         let isPlayerGrid;
         if (tile.isPlayerGrid !== undefined) {
           isPlayerGrid = tile.isPlayerGrid;
         } else {
-          // Determine grid based on tile position and attacker
-          // If attacker is player1, their grid is on the left (x < gridSize)
-          // If attacker is player2, their grid is on the right (x >= gridSize)
-          // But we need to think from the viewer's perspective
-          // For the current player viewing: if attacker is player1, player1's grid is on left
-          // For the current player viewing: if attacker is player2, player2's grid is on right
-          const isViewerPlayer1 = this.gameState.playerId === 'player1';
-          if (isAttackerPlayer1) {
-            // Attacker is player1, so their grid is on the left
-            // For viewer: if viewer is player1, attacker's grid is their grid (left)
-            // For viewer: if viewer is player2, attacker's grid is opponent's grid (left)
-            isPlayerGrid = isViewerPlayer1 ? (tile.x < this.gridSize) : (tile.x >= this.gridSize);
+          // Determine if tile is in viewer's grid based on x coordinate
+          // If viewer is player1: their grid is on left (x < gridSize)
+          // If viewer is player2: their grid is on right (x >= gridSize)
+          if (isViewerPlayer1) {
+            // Viewer is player1, their grid is on left
+            isPlayerGrid = tile.x < this.gridSize;
           } else {
-            // Attacker is player2, so their grid is on the right
-            // For viewer: if viewer is player1, attacker's grid is opponent's grid (right)
-            // For viewer: if viewer is player2, attacker's grid is their grid (right)
-            isPlayerGrid = isViewerPlayer1 ? (tile.x >= this.gridSize) : (tile.x < this.gridSize);
+            // Viewer is player2, their grid is on right
+            isPlayerGrid = tile.x >= this.gridSize;
           }
         }
         return {
