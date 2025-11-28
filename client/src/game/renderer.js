@@ -198,8 +198,10 @@ export class GameRenderer extends Phaser.Scene {
     // Store logger reference for audio controller
     this.logger = logger;
     
-    // Don't set phase here - wait for server to send BUILD_PHASE_STATE
-    // Phase will be set when both players are connected and server starts build phase
+    // Don't set phase here - wait for server to send BUILD_PHASE_STATE or ROOM_UPDATE
+    // Phase will be set when:
+    // - Player1: ROOM_UPDATE with players: 1
+    // - Player2: BUILD_PHASE_STATE when joining
     // this.currentPhase is already set in init() (WAITING)
     if (this.onPhaseChange) {
       this.onPhaseChange(this.currentPhase);
@@ -207,8 +209,25 @@ export class GameRenderer extends Phaser.Scene {
     
     logger.info('GameRenderer.create: Game setup complete', {
       currentPhase: this.currentPhase,
-      playerId: this.gameState?.playerId
+      playerId: this.gameState?.playerId,
+      hasGameState: !!this.gameState,
+      hasPlayerId: !!this.gameState?.playerId
     });
+    
+    // If we're player1 and already received ROOM_UPDATE, start timer now
+    // This handles the case where ROOM_UPDATE was received before create() completed
+    if (this.gameState?.playerId === 'player1' && this.currentPhase === GAME_PHASES.WAITING) {
+      // Use a small delay to ensure everything is initialized
+      this.time.delayedCall(100, () => {
+        // Check if we should start timer (if ROOM_UPDATE was already received)
+        // We'll check this in handleRoomUpdate, but also here as a fallback
+        logger.info('Player1: Checking if timer should start after create()', {
+          currentPhase: this.currentPhase,
+          hasBuildPhaseTimer: !!this.buildPhaseTimer,
+          hasTimerText: !!this.timerText
+        });
+      });
+    }
   }
 
   createPlaceholderGraphics() {
@@ -2437,11 +2456,20 @@ export class GameRenderer extends Phaser.Scene {
     // Player2: timer starts when they join (BUILD_PHASE_STATE is sent when player2 joins)
     // Check if timer hasn't started yet and we're in build phase and not ready
     if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText && !this.isReady) {
-      logger.info('Starting build phase timer', {
+      logger.info('Starting build phase timer from handleBuildPhaseState', {
         playerId: this.gameState.playerId,
-        currentPhase: this.currentPhase
+        currentPhase: this.currentPhase,
+        isReady: this.isReady
       });
       this.startBuildPhaseTimer();
+    } else {
+      logger.info('Timer not started in handleBuildPhaseState', {
+        playerId: this.gameState.playerId,
+        currentPhase: this.currentPhase,
+        hasBuildPhaseTimer: !!this.buildPhaseTimer,
+        hasTimerText: !!this.timerText,
+        isReady: this.isReady
+      });
     }
   }
   
