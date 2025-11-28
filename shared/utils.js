@@ -11,7 +11,8 @@ export function getManhattanDistance(x1, y1, x2, y2) {
 export function isAdjacent(x1, y1, x2, y2) {
   const dx = Math.abs(x2 - x1);
   const dy = Math.abs(y2 - y1);
-  return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+  // Adjacent means: horizontal, vertical, or diagonal (8-directional)
+  return (dx <= 1 && dy <= 1) && (dx !== 0 || dy !== 0);
 }
 
 export function isValidPath(path, maxRange) {
