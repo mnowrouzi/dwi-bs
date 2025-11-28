@@ -477,17 +477,18 @@ export class GameRenderer extends Phaser.Scene {
       this.buildBudgetText.setVisible(false);
     }
     
-    // Baroot display for battle phase - positioned on right side, vertically centered
+    // Baroot display for battle phase - positioned on right side, above FIRE button
+    // FIRE button is at fireButtonX = 1000, fireButtonY = 600
     const panelX = 1000; // Right side, same as unit panel
-    const screenHeight = 800; // Assuming screen height
-    const barootY = screenHeight / 2; // Center vertically
+    const fireButtonY = 600; // FIRE button Y position
+    const barootY = fireButtonY - 50; // Above FIRE button
     
     this.budgetText = this.add.text(panelX, barootY, 'مقدار باروت: 0', {
       fontSize: '24px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    }).setOrigin(0, 0.5).setDepth(100); // Left align horizontally, center vertically
+    }).setOrigin(0, 0).setDepth(100); // Left align
     
     // Show baroot text in battle phase by default, hide in build phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
@@ -500,10 +501,10 @@ export class GameRenderer extends Phaser.Scene {
     // Battle timer is at panelX = 1000, panelY - 30 = 120 (where panelY = 150)
     // So turn text should be at centerX (between grids) and above battle timer
     const battleTimerY = 120; // panelY - 30 where panelY = 150
-    const turnTextY = battleTimerY - 30; // Above battle timer (90)
+    const turnTextY = battleTimerY - 10; // Slightly above battle timer (110) - moved down
     
     this.turnText = this.add.text(centerX, turnTextY, '', {
-      fontSize: '18px',
+      fontSize: '22px', // Larger size (was 18px)
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
