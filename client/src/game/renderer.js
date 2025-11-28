@@ -2721,6 +2721,12 @@ export class GameRenderer extends Phaser.Scene {
       hasGameState: !!this.gameState
     });
     
+    // If player is already ready, don't show build phase UI
+    if (this.isReady) {
+      logger.info('Player is already ready, skipping build phase UI display');
+      return;
+    }
+    
     // Set phase to BUILD if not already
     if (this.currentPhase !== GAME_PHASES.BUILD) {
       logger.info('Setting phase to BUILD', {
