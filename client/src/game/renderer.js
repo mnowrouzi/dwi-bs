@@ -2475,6 +2475,24 @@ export class GameRenderer extends Phaser.Scene {
         break;
       
       case MESSAGE_TYPES.SHOT_REJECTED:
+        logger.warn('Shot rejected by server', {
+          reason: data.reason,
+          currentMana: this.mana,
+          pendingShots: this.pendingShots.length
+        });
+        // Remove the rejected shot from pending shots
+        if (this.pendingShots.length > 0) {
+          this.pendingShots.pop();
+        }
+        // Reset aiming state
+        this.selectedLauncherForShots = null;
+        this.currentPathTiles = [];
+        this.aimingMode = false;
+        this.isDrawingPath = false;
+        if (this.pathHighlightGraphics) {
+          this.pathHighlightGraphics.clear();
+        }
+        this.clearLauncherHighlight();
         this.onNotification(faTexts.notifications.shotRejected + ': ' + data.reason);
         this.audioController.playSound('error');
         break;
