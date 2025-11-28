@@ -2322,27 +2322,39 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   handleRoomUpdate(data) {
+    logger.info('handleRoomUpdate called', {
+      players: data.players,
+      currentPhase: this.currentPhase,
+      playerId: this.gameState.playerId,
+      hasBuildPhaseTimer: !!this.buildPhaseTimer,
+      hasTimerText: !!this.timerText
+    });
+    
     // Check if opponent connected
     if (data.players === 2) {
       if (this.currentPhase === GAME_PHASES.BUILD || this.currentPhase === GAME_PHASES.WAITING) {
         this.onNotification(faTexts.notifications.opponentConnected);
       }
-      // If we're player1 and in WAITING phase, start build phase timer now
-      // Player1's timer starts from the moment they create the room
-      if (this.currentPhase === GAME_PHASES.WAITING && !this.buildPhaseTimer && !this.timerText) {
-        logger.info('Player1: Starting build phase timer on room creation');
-        this.currentPhase = GAME_PHASES.BUILD;
-        this.onPhaseChange(this.currentPhase);
-        this.showUnitPanelInBuild();
-        this.startBuildPhaseTimer();
-      }
-    } else if (data.players === 1) {
-      // Player1 just created room - start timer immediately
-      if (this.currentPhase === GAME_PHASES.WAITING && !this.buildPhaseTimer && !this.timerText) {
-        logger.info('Player1: Starting build phase timer immediately after room creation');
-        this.currentPhase = GAME_PHASES.BUILD;
-        this.onPhaseChange(this.currentPhase);
-        this.showUnitPanelInBuild();
+    }
+    
+    // Player1: Start timer immediately when room is created (players === 1)
+    // Player2: Timer will start when BUILD_PHASE_STATE is received
+    if (data.players === 1 && this.currentPhase === GAME_PHASES.WAITING) {
+      logger.info('Player1: Starting build phase timer immediately after room creation', {
+        currentPhase: this.currentPhase,
+        hasBuildPhaseTimer: !!this.buildPhaseTimer,
+        hasTimerText: !!this.timerText
+      });
+      
+      // Set phase to BUILD
+      this.currentPhase = GAME_PHASES.BUILD;
+      this.onPhaseChange(this.currentPhase);
+      
+      // Show unit panel buttons
+      this.showUnitPanelInBuild();
+      
+      // Start timer if not already started
+      if (!this.buildPhaseTimer && !this.timerText) {
         this.startBuildPhaseTimer();
       }
     }
