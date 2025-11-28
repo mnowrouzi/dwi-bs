@@ -49,16 +49,22 @@ export class GameManager {
       player.buildBudget = this.config.buildBudget;
       logger.player(playerId, `Build budget reset to ${player.buildBudget}`);
     });
-    logger.room(this.roomId, 'Build phase started');
+    logger.room(this.roomId, 'Build phase started', {
+      playerCount: this.players.size,
+      playerIds: Array.from(this.players.keys())
+    });
     
     // Send build phase state to each player with their own budget
     this.players.forEach((player, playerId) => {
-      player.ws.send(JSON.stringify({
+      const message = {
         type: MESSAGE_TYPES.BUILD_PHASE_STATE,
         phase: GAME_PHASES.BUILD,
         buildBudget: player.buildBudget,
-        gridSize: this.config.gridSize
-      }));
+        gridSize: this.config.gridSize,
+        playerId: playerId // Include playerId in message
+      };
+      logger.player(playerId, 'Sending BUILD_PHASE_STATE', message);
+      player.ws.send(JSON.stringify(message));
     });
   }
 
