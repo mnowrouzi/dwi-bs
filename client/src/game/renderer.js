@@ -241,6 +241,38 @@ export class GameRenderer extends Phaser.Scene {
         }
       });
     }
+    
+    // If we're player2, check if BUILD_PHASE_STATE was received before create() completed
+    // This ensures timer starts even if BUILD_PHASE_STATE was received before create() completed
+    if (this.gameState?.playerId === 'player2') {
+      // Use a small delay to ensure everything is initialized (buttons, UI, etc.)
+      this.time.delayedCall(200, () => {
+        if (this.currentPhase === GAME_PHASES.WAITING) {
+          logger.info('Player2: Still in WAITING phase after create(), checking for pending BUILD_PHASE_STATE', {
+            currentPhase: this.currentPhase,
+            hasBuildPhaseTimer: !!this.buildPhaseTimer,
+            hasTimerText: !!this.timerText,
+            isReady: this.isReady,
+            buildBudget: this.buildBudget
+          });
+          // If still WAITING, it means BUILD_PHASE_STATE hasn't been received yet
+          // It should arrive soon from the server
+        } else if (this.currentPhase === GAME_PHASES.BUILD) {
+          logger.info('Player2: Already in BUILD phase, starting timer if needed', {
+            currentPhase: this.currentPhase,
+            hasBuildPhaseTimer: !!this.buildPhaseTimer,
+            hasTimerText: !!this.timerText,
+            isReady: this.isReady,
+            buildBudget: this.buildBudget
+          });
+          
+          // Start timer if not already started
+          if (!this.buildPhaseTimer && !this.timerText && !this.isReady) {
+            this.startBuildPhaseTimer();
+          }
+        }
+      });
+    }
   }
 
   createPlaceholderGraphics() {
