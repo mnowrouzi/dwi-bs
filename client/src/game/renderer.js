@@ -383,7 +383,7 @@ export class GameRenderer extends Phaser.Scene {
     // In build phase: show build budget, in battle phase: show baroot amount
     const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'مقدار باروت';
     const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : 0;
-    this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 60, `${budgetLabel}: ${budgetValue}`, {
+    this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 100, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
@@ -2344,7 +2344,8 @@ export class GameRenderer extends Phaser.Scene {
         currentPhase: this.currentPhase,
         hasBuildPhaseTimer: !!this.buildPhaseTimer,
         hasTimerText: !!this.timerText,
-        playerId: this.gameState.playerId
+        playerId: this.gameState.playerId,
+        isReady: this.isReady
       });
       
       // Set phase to BUILD (player1 enters build phase immediately)
@@ -2363,9 +2364,20 @@ export class GameRenderer extends Phaser.Scene {
       }
       
       // Start timer if not already started (30 seconds for player1)
-      if (!this.buildPhaseTimer && !this.timerText && !this.isReady) {
+      // Force start timer even if it seems to exist (in case of stale state)
+      if (!this.isReady) {
+        if (this.buildPhaseTimer) {
+          clearInterval(this.buildPhaseTimer);
+          this.buildPhaseTimer = null;
+        }
+        if (this.timerText) {
+          this.timerText.destroy();
+          this.timerText = null;
+        }
         logger.info('Player1: Starting 30-second build phase timer');
         this.startBuildPhaseTimer();
+      } else {
+        logger.info('Player1: Already ready, skipping timer start');
       }
     }
   }
