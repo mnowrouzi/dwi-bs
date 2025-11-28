@@ -458,25 +458,38 @@ export class GameRenderer extends Phaser.Scene {
   setupUI() {
     // Mana bar - REMOVED as per user request
     
-    // Budget/Baroot display - positioned on right side (where buttons are in build phase)
-    // In build phase: show build budget, in battle phase: show baroot amount (only when launcher selected)
+    // Budget display for build phase - positioned on right side (where buttons are)
     const panelX = 1000; // Right side, same as unit panel
     const panelY = 150; // Same as unit panel start
     
-    const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'مقدار باروت';
-    const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : 0;
-    // Position baroot above battle timer (battle timer is at panelY - 30, so baroot is at panelY - 60)
-    const barootY = this.currentPhase === GAME_PHASES.BATTLE ? panelY - 60 : panelY - 30;
-    this.budgetText = this.add.text(panelX, barootY, `${budgetLabel}: ${budgetValue}`, {
+    // Build budget text (only shown in build phase)
+    this.buildBudgetText = this.add.text(panelX, panelY - 30, `بودجه ساخت: ${this.buildBudget}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
-    }).setOrigin(0, 0).setDepth(100); // Fixed origin and depth
+    }).setOrigin(0, 0).setDepth(100);
     
-    // Hide budget text in battle phase initially (will show when launcher is selected)
+    // Hide build budget in battle phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
-      this.budgetText.setVisible(false);
+      this.buildBudgetText.setVisible(false);
     }
+    
+    // Baroot display for battle phase - positioned in center Y between two grids
+    // Only shown in battle phase when launcher is selected
+    const separatorWidth = 20;
+    const gridWidth = this.gridSize * GRID_TILE_SIZE;
+    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    const centerY = GRID_OFFSET_Y + (this.gridSize * GRID_TILE_SIZE) / 2; // Center Y of grids
+    
+    this.budgetText = this.add.text(centerX, centerY, 'مقدار باروت: 0', {
+      fontSize: '24px',
+      color: '#ffd700',
+      fontFamily: 'Vazirmatn, Tahoma',
+      fontWeight: 'bold'
+    }).setOrigin(0.5, 0.5).setDepth(100); // Center both X and Y
+    
+    // Hide baroot text initially (will show when launcher is selected in battle phase)
+    this.budgetText.setVisible(false);
     
     // Turn indicator
     this.turnText = this.add.text(50, 130, '', {
@@ -1918,6 +1931,13 @@ export class GameRenderer extends Phaser.Scene {
       });
     }
     
+    // Hide build budget text (only for build phase)
+    if (this.buildBudgetText) {
+      this.buildBudgetText.setVisible(false);
+    }
+    
+    // Baroot text will be shown when launcher is selected (handled in updateBarootDisplay)
+    
     // Hide defense buttons and their texts
     if (this.defenseButtonsGroup) {
       if (this.defenseButtonsGroup.label) {
@@ -1948,6 +1968,16 @@ export class GameRenderer extends Phaser.Scene {
         if (buttonData.titleText) buttonData.titleText.setVisible(true);
         if (buttonData.costText) buttonData.costText.setVisible(true);
       });
+    }
+    
+    // Show build budget text
+    if (this.buildBudgetText) {
+      this.buildBudgetText.setVisible(true);
+    }
+    
+    // Hide baroot text (only for battle phase)
+    if (this.budgetText) {
+      this.budgetText.setVisible(false);
     }
     
     // Show defense buttons and their texts
@@ -2574,8 +2604,8 @@ export class GameRenderer extends Phaser.Scene {
     // Update budget from server (which uses config)
     if (data.buildBudget !== undefined) {
       this.buildBudget = data.buildBudget;
-      if (this.budgetText) {
-        this.budgetText.setText(`بودجه ساخت: ${this.buildBudget}`);
+      if (this.buildBudgetText) {
+        this.buildBudgetText.setText(`بودجه ساخت: ${this.buildBudget}`);
         // Keep position fixed - don't change it
       }
       logger.info('Build budget updated from server', { buildBudget: this.buildBudget, serverBudget: data.buildBudget });
@@ -2586,9 +2616,9 @@ export class GameRenderer extends Phaser.Scene {
       this.renderUnits();
     }
     
-    // Also update budget display if it changed
-    if (this.budgetText && this.budget !== undefined) {
-      this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
+    // Also update build budget display if it changed (only in build phase)
+    if (this.buildBudgetText && this.budget !== undefined && this.currentPhase === GAME_PHASES.BUILD) {
+      this.buildBudgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
     }
     
     // Start 30-second timer for build phase
@@ -2719,7 +2749,12 @@ export class GameRenderer extends Phaser.Scene {
       this.renderUnits(); // Render units in battle phase
     }
     
-    // Hide build budget, show baroot display (initially hidden until launcher selected)
+    // Hide build budget in battle phase
+    if (this.buildBudgetText) {
+      this.buildBudgetText.setVisible(false);
+    }
+    
+    // Hide baroot display initially (will show when launcher is selected)
     if (this.budgetText) {
       this.budgetText.setVisible(false);
     }
