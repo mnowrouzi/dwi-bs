@@ -226,8 +226,24 @@ function handleRequestShot(ws, data) {
   if (!gameManager) return;
   
   const playerId = playerToId.get(ws);
-  logger.room(roomId, `Shot request from ${playerId}`);
+  logger.room(roomId, `Shot request from ${playerId}`, {
+    launcherId: data.launcherId,
+    pathLength: data.pathTiles?.length || 0
+  });
   const result = gameManager.processShot(playerId, data.launcherId, data.pathTiles);
+  
+  if (!result.success) {
+    logger.room(roomId, `Shot rejected: ${result.error}`, {
+      playerId,
+      launcherId: data.launcherId,
+      pathLength: data.pathTiles?.length || 0
+    });
+    ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.SHOT_REJECTED,
+      reason: result.error
+    }));
+    return;
+  }
   
   if (result.success) {
     logger.room(roomId, `Shot successful, intercepted: ${result.intercepted}`);

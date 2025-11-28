@@ -3,7 +3,7 @@
   "buildBudget": 10,
   "shotBudget": 5,
   "mana": {
-    "startMana": 2,
+    "startMana": 0,
     "maxMana": 10,
     "manaPerTurn": 2,
     "maxShotsPerTurn": 2,
