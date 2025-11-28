@@ -43,3 +43,4 @@ echo ""
 echo "💡 You can now test the game in your browser"
 echo "📝 Logs available in: logs/"
 
+

@@ -19,3 +19,4 @@ CLIENT_PORT=$(find_free_port 5173)
 echo "SERVER_PORT=$SERVER_PORT"
 echo "CLIENT_PORT=$CLIENT_PORT"
 
+

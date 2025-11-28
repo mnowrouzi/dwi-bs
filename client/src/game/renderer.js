@@ -2153,7 +2153,7 @@ export class GameRenderer extends Phaser.Scene {
     
     this.onNotification(faTexts.notifications.waitingForOpponent);
   }
-  
+
   hideBuildPhaseUI() {
     logger.info('hideBuildPhaseUI called', {
       hasBuildPhaseTimer: !!this.buildPhaseTimer,
@@ -2556,15 +2556,29 @@ export class GameRenderer extends Phaser.Scene {
     // Clear launcher highlight on turn change
     this.clearLauncherHighlight();
     
-        // Disable FIRE button when not in aiming mode (keep visible in battle phase)
+        // Enable FIRE button if it's player's turn (always active during player's turn)
+        // User can fire if path is drawn, or end turn if no path
         if (this.fireButton && this.currentPhase === GAME_PHASES.BATTLE) {
-          this.fireButton.setAlpha(0.5);
-          this.fireButtonText.setAlpha(0.5);
+          if (this.currentTurn === this.gameState.playerId) {
+            // Player's turn - always enable FIRE button
+            this.fireButton.setAlpha(1.0);
+            this.fireButton.setFillStyle(0xff0000);
+            this.fireButtonText.setAlpha(1.0);
+            this.fireButton.setInteractive({ useHandCursor: true });
+            logger.info('FIRE button enabled - player turn');
+          } else {
+            // Opponent's turn - disable FIRE button
+            this.fireButton.setAlpha(0.5);
+            this.fireButtonText.setAlpha(0.5);
+            this.fireButton.disableInteractive();
+            logger.info('FIRE button disabled - opponent turn');
+          }
         }
         
-        // Hide baroot display on turn change
+        // Always show baroot display in battle phase (for both players)
         if (this.budgetText && this.currentPhase === GAME_PHASES.BATTLE) {
-          this.budgetText.setVisible(false);
+          this.budgetText.setVisible(true);
+          this.updateBarootDisplay();
         }
     
     // Start battle turn timer if it's player's turn
@@ -2931,13 +2945,25 @@ export class GameRenderer extends Phaser.Scene {
     // Hide unit panel buttons in battle phase
     this.hideUnitPanelInBattle();
     
-    // Show FIRE button in battle phase (will be enabled when aiming mode is active)
+    // Show FIRE button in battle phase
+    // Enable it if it's player's turn (always active during player's turn)
     if (this.fireButton) {
       this.fireButton.setVisible(true);
       this.fireButtonText.setVisible(true);
-      // Disable initially (will be enabled when path is ready)
-      this.fireButton.setAlpha(0.5);
-      this.fireButtonText.setAlpha(0.5);
+      if (this.currentTurn === this.gameState.playerId) {
+        // Player's turn - always enable FIRE button
+        this.fireButton.setAlpha(1.0);
+        this.fireButton.setFillStyle(0xff0000);
+        this.fireButtonText.setAlpha(1.0);
+        this.fireButton.setInteractive({ useHandCursor: true });
+        logger.info('FIRE button enabled in handleBattleState - player turn');
+      } else {
+        // Opponent's turn - disable FIRE button
+        this.fireButton.setAlpha(0.5);
+        this.fireButtonText.setAlpha(0.5);
+        this.fireButton.disableInteractive();
+        logger.info('FIRE button disabled in handleBattleState - opponent turn');
+      }
     }
     
     // Start battle turn timer if it's player's turn

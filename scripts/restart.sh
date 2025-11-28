@@ -44,3 +44,4 @@ echo "   Client: logs/client.log"
 echo ""
 echo "To stop: kill $SERVER_PID $CLIENT_PID"
 
+

@@ -11,3 +11,4 @@ lsof -ti:5173 | xargs kill -9 2>/dev/null && echo "✅ Client stopped (port 5173
 
 echo "✅ All processes stopped"
 
+
