@@ -1864,8 +1864,21 @@ export class GameRenderer extends Phaser.Scene {
       }
     }
     
+    // Ensure position is correct (right side, above FIRE button)
+    const panelX = 1000; // Right side
+    const fireButtonY = 600; // FIRE button Y position
+    const barootY = fireButtonY - 50; // Above FIRE button
+    
+    this.budgetText.setPosition(panelX, barootY);
     this.budgetText.setText(`مقدار باروت: ${baroot}`);
     this.budgetText.setVisible(true);
+    
+    logger.info('Baroot display updated', {
+      x: panelX,
+      y: barootY,
+      baroot: baroot,
+      hasSelectedLauncher: !!this.selectedLauncherForShots
+    });
   }
   
   handleBattlePointerUp(pointer) {
