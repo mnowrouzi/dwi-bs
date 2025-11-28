@@ -2456,11 +2456,16 @@ export class GameRenderer extends Phaser.Scene {
         this.timerText.setText(`زمان باقی‌مانده: ${timeLeft} ثانیه`);
       } else {
         clearInterval(countdown);
+        this.buildPhaseTimer = null;
         if (this.timerText) {
           this.timerText.destroy();
           this.timerText = null;
         }
-        this.buildPhaseTimer = null;
+        
+        logger.info('Build phase timer expired', {
+          playerId: this.gameState.playerId,
+          isReady: this.isReady
+        });
         
         // Check if player has any launchers
         const launchers = this.playerUnits?.launchers || [];
@@ -2470,16 +2475,23 @@ export class GameRenderer extends Phaser.Scene {
           // No launchers - place a random launcher automatically
           logger.info('Timer expired with no launchers - placing random launcher');
           this.placeRandomLauncher();
+          // Wait a bit for the launcher to be placed and sent to server
+          this.time.delayedCall(500, () => {
+            if (!this.isReady) {
+              logger.info('Auto-sending ready after random launcher placement');
+              this.sendReady();
+            }
+          });
+        } else {
+          // Has launchers - auto-send ready if not already ready
+          if (!this.isReady) {
+            logger.info('Timer expired, player has launchers - auto-sending ready');
+            this.sendReady();
+          }
         }
         
-        // Auto-send ready if not already ready
-        if (!this.isReady) {
-          this.sendReady();
-        }
-        // Request battle phase start from server
-        this.gameState.ws.send(JSON.stringify({
-          type: MESSAGE_TYPES.READY_TO_START
-        }));
+        // Note: Server will check if both players are ready and start battle phase
+        // We don't need to send READY_TO_START here - just READY is enough
       }
     }, 1000);
     
