@@ -438,21 +438,22 @@ export class GameRenderer extends Phaser.Scene {
         
         if (this.currentPhase === GAME_PHASES.BATTLE && 
             this.currentTurn === this.gameState.playerId) {
-          // If not in aiming mode or path is empty, do nothing
-          if (!this.aimingMode || !this.currentPathTiles || this.currentPathTiles.length < 2) {
-            logger.warn('FIRE button: Cannot fire - conditions not met', {
+          // If path is valid and launcher is selected, fire the shot
+          if (this.aimingMode && this.currentPathTiles && this.currentPathTiles.length >= 2 && this.selectedLauncherForShots) {
+            logger.info('FIRE button: Calling fireAllShots', {
+              pathLength: this.currentPathTiles.length,
+              launcherId: this.selectedLauncherForShots.id
+            });
+            this.fireAllShots();
+          } else {
+            // No valid path - end turn without firing
+            logger.info('FIRE button: No valid path, ending turn', {
               aimingMode: this.aimingMode,
               pathLength: this.currentPathTiles?.length || 0,
               selectedLauncher: this.selectedLauncherForShots?.id
             });
-            return;
+            this.endTurn();
           }
-          // If path is valid, execute shot
-          logger.info('FIRE button: Calling fireAllShots', {
-            pathLength: this.currentPathTiles.length,
-            launcherId: this.selectedLauncherForShots.id
-          });
-          this.fireAllShots();
         } else {
           logger.warn('FIRE button: Not in battle phase or not player\'s turn', {
             currentPhase: this.currentPhase,
@@ -1038,10 +1039,12 @@ export class GameRenderer extends Phaser.Scene {
             // Show and update baroot amount based on launcher
             this.updateBarootDisplay(launcherConfig.manaCost);
             
-            // Disable FIRE button until path is drawn (it's already visible in battle phase)
-            if (this.fireButton) {
-              this.fireButton.setAlpha(0.5);
-              this.fireButtonText.setAlpha(0.5);
+            // Keep FIRE button enabled (it's always active during player's turn)
+            // User can fire if path is drawn, or end turn if no path
+            if (this.fireButton && this.currentTurn === this.gameState.playerId) {
+              this.fireButton.setAlpha(1.0);
+              this.fireButtonText.setAlpha(1.0);
+              this.fireButton.setInteractive({ useHandCursor: true });
             }
             
             // Hide unit panel buttons in battle phase
@@ -1798,19 +1801,22 @@ export class GameRenderer extends Phaser.Scene {
           launcherType: this.selectedLauncherForShots?.type
         });
       }
-      if (this.fireButton) {
+      // Path is valid - FIRE button is already enabled (always enabled during player's turn)
+      if (this.fireButton && this.currentTurn === this.gameState.playerId) {
         this.fireButton.setAlpha(1.0);
         this.fireButton.setFillStyle(0xff0000);
         this.fireButtonText.setAlpha(1.0);
+        this.fireButton.setInteractive({ useHandCursor: true });
       }
     } else {
-      logger.info('Path too short, disabling FIRE button', {
+      logger.info('Path too short, but FIRE button remains enabled (can end turn)', {
         pathLength: this.currentPathTiles?.length || 0
       });
-      // Path too short - disable FIRE button
-      if (this.fireButton) {
-        this.fireButton.setAlpha(0.5);
-        this.fireButtonText.setAlpha(0.5);
+      // Path too short - but FIRE button stays enabled (can end turn without firing)
+      if (this.fireButton && this.currentTurn === this.gameState.playerId) {
+        this.fireButton.setAlpha(1.0);
+        this.fireButtonText.setAlpha(1.0);
+        this.fireButton.setInteractive({ useHandCursor: true });
       }
     }
   }
@@ -2007,6 +2013,29 @@ export class GameRenderer extends Phaser.Scene {
     this.onNotification(faTexts.notifications.waitingForOpponent);
   }
 
+  endTurn() {
+    logger.info('Ending turn without firing', {
+      currentTurn: this.currentTurn,
+      playerId: this.gameState.playerId
+    });
+    
+    // Clear any partial path
+    this.currentPathTiles = [];
+    this.selectedLauncherForShots = null;
+    this.pathSelectionMode = false;
+    this.aimingMode = false;
+    this.isDrawingPath = false;
+    if (this.pathHighlightGraphics) {
+      this.pathHighlightGraphics.clear();
+    }
+    this.clearLauncherHighlight();
+    
+    // Request turn switch from server
+    this.gameState.ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.END_TURN
+    }));
+  }
+
   fireAllShots() {
     logger.info('fireAllShots called', {
       currentPathTiles: this.currentPathTiles?.length || 0,
@@ -2085,10 +2114,11 @@ export class GameRenderer extends Phaser.Scene {
     // Check if we can fire more shots
     const remainingShots = this.config.mana.maxShotsPerTurn - this.pendingShots.length;
     if (remainingShots > 0) {
-      // Enable FIRE button if we can fire more shots
-      if (this.fireButton) {
-        this.fireButton.setAlpha(0.5); // Disabled until new launcher selected
-        this.fireButtonText.setAlpha(0.5);
+      // FIRE button stays enabled (can fire more or end turn)
+      if (this.fireButton && this.currentTurn === this.gameState.playerId) {
+        this.fireButton.setAlpha(1.0);
+        this.fireButtonText.setAlpha(1.0);
+        this.fireButton.setInteractive({ useHandCursor: true });
       }
       logger.info('Shot fired, can fire more shots', {
         remainingShots,
@@ -2096,12 +2126,13 @@ export class GameRenderer extends Phaser.Scene {
         maxShots: this.config.mana.maxShotsPerTurn
       });
     } else {
-      // All shots fired, disable FIRE button
-      if (this.fireButton) {
-        this.fireButton.setAlpha(0.5);
-        this.fireButtonText.setAlpha(0.5);
+      // All shots fired, but FIRE button stays enabled (can end turn)
+      if (this.fireButton && this.currentTurn === this.gameState.playerId) {
+        this.fireButton.setAlpha(1.0);
+        this.fireButtonText.setAlpha(1.0);
+        this.fireButton.setInteractive({ useHandCursor: true });
       }
-      logger.info('All shots fired for this turn', {
+      logger.info('All shots fired for this turn, but can still end turn', {
         totalShots: this.pendingShots.length,
         maxShots: this.config.mana.maxShotsPerTurn
       });
@@ -2476,6 +2507,14 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   handleDamage(data) {
+    logger.info('handleDamage called', {
+      intercepted: data.intercepted,
+      launcherId: data.launcherId,
+      attackerId: data.attackerId,
+      pathLength: data.pathTiles?.length || 0,
+      hasDamage: !!data.damage
+    });
+    
     if (data.intercepted) {
       this.onNotification(faTexts.notifications.missileIntercepted);
       this.audioController.playSound('defense_intercept');
@@ -2514,6 +2553,8 @@ export class GameRenderer extends Phaser.Scene {
       }
       this.renderUnits();
     }
+    
+    // Note: Turn change is handled separately via TURN_CHANGE message from server
   }
 
   handleGameOver(data) {
