@@ -456,14 +456,16 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   setupUI() {
-    // Mana bar
-    this.manaBar = new ManaBar(this, 50, 50, this.config);
+    // Mana bar - REMOVED as per user request
     
-    // Budget/Baroot display - positioned above grid, left side with proper margin (fixed position)
-    // In build phase: show build budget, in battle phase: show baroot amount
+    // Budget/Baroot display - positioned on right side (where buttons are in build phase)
+    // In build phase: show build budget, in battle phase: show baroot amount (only when launcher selected)
+    const panelX = 1000; // Right side, same as unit panel
+    const panelY = 150; // Same as unit panel start
+    
     const budgetLabel = this.currentPhase === GAME_PHASES.BUILD ? 'بودجه ساخت' : 'مقدار باروت';
     const budgetValue = this.currentPhase === GAME_PHASES.BUILD ? this.buildBudget : 0;
-    this.budgetText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 100, `${budgetLabel}: ${budgetValue}`, {
+    this.budgetText = this.add.text(panelX, panelY - 30, `${budgetLabel}: ${budgetValue}`, {
       fontSize: '18px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma'
@@ -2353,7 +2355,7 @@ export class GameRenderer extends Phaser.Scene {
         break;
       
       case MESSAGE_TYPES.MANA_UPDATE:
-        // Update mana for current player
+        // Update mana for current player (mana bar removed, just update internal state)
         if (data.mana && typeof data.mana === 'object') {
           // New format: { player1: X, player2: Y }
           this.mana = data.mana[this.gameState?.playerId] || this.mana;
@@ -2366,7 +2368,7 @@ export class GameRenderer extends Phaser.Scene {
           playerId: this.gameState?.playerId,
           dataMana: data.mana
         });
-        this.manaBar.updateMana(this.mana);
+        // Mana bar removed - no need to update UI
         break;
       
       case MESSAGE_TYPES.TURN_CHANGE:
@@ -2632,13 +2634,19 @@ export class GameRenderer extends Phaser.Scene {
     
     // Start 30-second countdown - position timer below budget text to avoid overlap
     let timeLeft = 30;
-    this.timerText = this.add.text(GRID_OFFSET_X, GRID_OFFSET_Y - 70, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
+    // Position timer in center between two grids (above "زمین شما" and "زمین حریف")
+    const separatorWidth = 20;
+    const gridWidth = this.gridSize * GRID_TILE_SIZE;
+    const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
+    const centerY = GRID_OFFSET_Y - 50; // Above grid labels
+    
+    this.timerText = this.add.text(centerX, centerY, `زمان باقی‌مانده: ${timeLeft} ثانیه`, {
       fontSize: '16px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold',
       padding: { x: 10, y: 5 }
-    }).setOrigin(0, 0).setDepth(100);
+    }).setOrigin(0.5, 0).setDepth(100); // Center horizontally
     
     logger.info('Timer text created', {
       x: GRID_OFFSET_X,
@@ -2700,7 +2708,7 @@ export class GameRenderer extends Phaser.Scene {
     this.onPhaseChange(this.currentPhase);
     this.currentTurn = data.currentTurn;
     this.mana = data.mana[this.gameState.playerId];
-    this.manaBar.updateMana(this.mana);
+        // Mana bar removed - no need to update UI
     this.updateTurnIndicator();
     
     // Update units from server (they should persist from build phase)
@@ -2739,9 +2747,13 @@ export class GameRenderer extends Phaser.Scene {
     const turnTime = this.turnTimeSeconds;
     let timeLeft = turnTime;
     
+    // Position battle timer on right side (where buttons are in build phase)
+    const panelX = 1000; // Right side, same as unit panel
+    const panelY = 150; // Same as unit panel start
+    
     // Create or update timer text
     if (!this.battleTurnTimerText) {
-      this.battleTurnTimerText = this.add.text(50, 100, `زمان نوبت: ${timeLeft} ثانیه`, {
+      this.battleTurnTimerText = this.add.text(panelX, panelY - 30, `زمان نوبت: ${timeLeft} ثانیه`, {
         fontSize: '18px',
         color: '#ffd700',
         fontFamily: 'Vazirmatn, Tahoma',
