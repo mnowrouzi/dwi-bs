@@ -1111,8 +1111,8 @@ export class GameRenderer extends Phaser.Scene {
         }
       }
       // If not clicking on launcher and not in aiming mode, do nothing
-      return;
-    }
+            return;
+          }
     
     // If in aiming mode and clicking on grid (not on launcher), continue path
     if (this.aimingMode && this.selectedLauncherForShots && this.isDrawingPath) {
@@ -1243,8 +1243,8 @@ export class GameRenderer extends Phaser.Scene {
       currentPathLength: this.currentPathTiles?.length || 0
     });
     
-    const newTile = { x: gridX, y: gridY, isPlayerGrid };
-    
+      const newTile = { x: gridX, y: gridY, isPlayerGrid };
+      
     // Check if new tile is inside launcher area
     // IMPORTANT: Launcher is always in player grid, so only check if tile is in player grid
     if (this.selectedLauncherForShots && this.isTileInLauncherArea(gridX, gridY, this.selectedLauncherForShots, isPlayerGrid)) {
@@ -1368,7 +1368,7 @@ export class GameRenderer extends Phaser.Scene {
     // Only process backward drag if tile is actually in path AND we're going backward
     // Don't truncate if we're just hovering or if tile is adjacent and new
     if (existingIndex >= 0) {
-      const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
       const isLastTile = existingIndex === this.currentPathTiles.length - 1;
       
       if (isLastTile) {
@@ -1419,8 +1419,8 @@ export class GameRenderer extends Phaser.Scene {
               this.currentPathTiles = [];
               this.drawPathHighlight();
               this.updateBarootDisplay();
-              return;
-            }
+          return;
+        }
           }
           
           // First tile is still valid - don't truncate, preserve it
@@ -1449,7 +1449,7 @@ export class GameRenderer extends Phaser.Scene {
             firstTilePreserved: { x: this.currentPathTiles[0].x, y: this.currentPathTiles[0].y, isPlayerGrid: this.currentPathTiles[0].isPlayerGrid },
             fullPath: this.currentPathTiles.map(t => ({ x: t.x, y: t.y, isPlayerGrid: t.isPlayerGrid }))
           });
-          return;
+        return;
         } else {
           // Tile is immediately before last tile (existingIndex = length - 2)
           // This might be a duplicate or we're going back one step
@@ -1466,8 +1466,8 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Check if adjacent to last tile (can be in different grids)
-    if (this.currentPathTiles.length > 0) {
-      const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
+      if (this.currentPathTiles.length > 0) {
+        const lastTile = this.currentPathTiles[this.currentPathTiles.length - 1];
       
       // Adjacency check: tiles are adjacent if they are next to each other
       // For tiles in different grids: check if they are at the boundary
@@ -1567,8 +1567,8 @@ export class GameRenderer extends Phaser.Scene {
             }
             
             if (withinRange) {
-              this.currentPathTiles.push(newTile);
-              this.drawPathHighlight();
+      this.currentPathTiles.push(newTile);
+      this.drawPathHighlight();
               this.updateBarootDisplay();
               logger.info('✅ New tile added after intermediate tiles', {
                 tile: { x: newTile.x, y: newTile.y, isPlayerGrid: newTile.isPlayerGrid },
@@ -2046,6 +2046,12 @@ export class GameRenderer extends Phaser.Scene {
   }
 
   placeRandomLauncher() {
+    logger.info('placeRandomLauncher called', {
+      buildBudget: this.buildBudget,
+      configBuildBudget: this.config?.buildBudget,
+      currentPhase: this.currentPhase
+    });
+    
     // Get available launchers from config
     const availableLaunchers = this.config.launchers || [];
     if (availableLaunchers.length === 0) {
@@ -2053,17 +2059,38 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // Select a random launcher
-    const randomLauncher = availableLaunchers[Math.floor(Math.random() * availableLaunchers.length)];
+    // Select cheapest launcher to ensure we can place it
+    const cheapestLauncher = availableLaunchers.reduce((cheapest, launcher) => {
+      return (!cheapest || launcher.cost < cheapest.cost) ? launcher : cheapest;
+    }, null);
+    
+    if (!cheapestLauncher) {
+      logger.warn('No launcher found for random placement');
+      return;
+    }
+    
+    // If budget is 0 or not set, use config value as fallback
+    let availableBudget = this.buildBudget;
+    if (availableBudget === 0 || availableBudget === undefined || availableBudget === null) {
+      availableBudget = this.config?.buildBudget || 10;
+      logger.warn('Budget is 0, using config fallback', {
+        fallbackBudget: availableBudget,
+        originalBudget: this.buildBudget
+      });
+      this.buildBudget = availableBudget;
+    }
     
     // Check if we have enough budget
-    if (this.buildBudget < randomLauncher.cost) {
+    if (availableBudget < cheapestLauncher.cost) {
       logger.warn('Not enough budget for random launcher placement', {
-        budget: this.buildBudget,
-        cost: randomLauncher.cost
+        budget: availableBudget,
+        cost: cheapestLauncher.cost,
+        cheapestLauncher: cheapestLauncher.id
       });
       return;
     }
+    
+    const randomLauncher = cheapestLauncher; // Use cheapest to ensure placement
     
     // Find a random valid position on player's grid (left side)
     // Player grid is from (0, 0) to (gridSize/2 - 1, gridSize - 1)
@@ -2086,11 +2113,25 @@ export class GameRenderer extends Phaser.Scene {
         logger.info('Placing random launcher', {
           launcherType: randomLauncher.id,
           position: { x, y },
-          cost: randomLauncher.cost
+          cost: randomLauncher.cost,
+          budget: this.buildBudget
         });
         
         // Place the launcher (silently, no notification)
         placed = this.unitPlacement.placeLauncher(x, y, randomLauncher.id);
+        
+        if (placed) {
+          logger.info('Random launcher placed successfully', {
+            launcherType: randomLauncher.id,
+            position: { x, y },
+            remainingBudget: this.buildBudget
+          });
+        } else {
+          logger.warn('Failed to place random launcher', {
+            launcherType: randomLauncher.id,
+            position: { x, y }
+          });
+        }
       }
       
       attempts++;
@@ -2177,8 +2218,8 @@ export class GameRenderer extends Phaser.Scene {
       pathLength: this.currentPathTiles.length,
       pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
     });
-    this.gameState.ws.send(JSON.stringify({
-      type: MESSAGE_TYPES.REQUEST_SHOT,
+      this.gameState.ws.send(JSON.stringify({
+        type: MESSAGE_TYPES.REQUEST_SHOT,
       launcherId: this.selectedLauncherForShots.id,
       pathTiles: this.currentPathTiles.map(t => ({ x: t.x, y: t.y }))
     }));
@@ -2270,15 +2311,15 @@ export class GameRenderer extends Phaser.Scene {
         this.updateTurnIndicator();
         this.audioController.playSound('turnChange');
         
-    // Reset pending shots on turn change
-    this.pendingShots = [];
-    this.selectedLauncherForShots = null;
-    this.currentPathTiles = [];
-    this.pathSelectionMode = false;
+        // Reset pending shots on turn change
+        this.pendingShots = [];
+        this.selectedLauncherForShots = null;
+        this.currentPathTiles = [];
+        this.pathSelectionMode = false;
     this.aimingMode = false;
-    if (this.pathHighlightGraphics) {
-      this.pathHighlightGraphics.clear();
-    }
+        if (this.pathHighlightGraphics) {
+          this.pathHighlightGraphics.clear();
+        }
     // Clear launcher highlight on turn change
     this.clearLauncherHighlight();
     
@@ -2298,7 +2339,7 @@ export class GameRenderer extends Phaser.Scene {
       this.startBattleTurnTimer();
     } else {
       this.stopBattleTurnTimer();
-    }
+        }
         break;
       
       case MESSAGE_TYPES.APPLY_DAMAGE:
@@ -2550,10 +2591,10 @@ export class GameRenderer extends Phaser.Scene {
           this.placeRandomLauncher();
           // Wait a bit for the launcher to be placed and sent to server
           this.time.delayedCall(500, () => {
-            if (!this.isReady) {
+        if (!this.isReady) {
               logger.info('Auto-sending ready after random launcher placement');
-              this.sendReady();
-            }
+          this.sendReady();
+        }
           });
         } else {
           // Has launchers - auto-send ready if not already ready
