@@ -58,7 +58,7 @@ export class GameRenderer extends Phaser.Scene {
     this.gridSize = this.config.gridSize;
     this.playerUnits = { launchers: [], defenses: [] };
     this.opponentUnits = { launchers: [], defenses: [] };
-    this.currentPhase = GAME_PHASES.BUILD;
+    this.currentPhase = GAME_PHASES.WAITING; // Start in WAITING, will be set to BUILD when server sends BUILD_PHASE_STATE
     // Use budgets from config
     this.buildBudget = this.config.buildBudget || 10;
     this.shotBudget = this.config.shotBudget || 5;
@@ -198,13 +198,17 @@ export class GameRenderer extends Phaser.Scene {
     // Store logger reference for audio controller
     this.logger = logger;
     
-    // Start build phase
-    this.currentPhase = GAME_PHASES.BUILD;
+    // Don't set phase here - wait for server to send BUILD_PHASE_STATE
+    // Phase will be set when both players are connected and server starts build phase
+    // this.currentPhase is already set in init() (WAITING)
     if (this.onPhaseChange) {
       this.onPhaseChange(this.currentPhase);
     }
     
-    logger.info('GameRenderer.create: Game setup complete');
+    logger.info('GameRenderer.create: Game setup complete', {
+      currentPhase: this.currentPhase,
+      playerId: this.gameState?.playerId
+    });
   }
 
   createPlaceholderGraphics() {
