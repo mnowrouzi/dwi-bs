@@ -67,6 +67,9 @@ function handleCreateRoom(ws, data) {
   
   logger.room(roomId, `Player 1 joined (${playerId})`);
   
+  // Start build phase for player1 immediately
+  gameManager.startBuildPhase();
+  
   ws.send(JSON.stringify({
     type: MESSAGE_TYPES.ROOM_UPDATE,
     roomId,
