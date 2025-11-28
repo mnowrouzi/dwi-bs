@@ -497,10 +497,10 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Turn indicator - positioned above battle timer (center between grids)
-    // Battle timer is at panelX = 1000, panelY - 30 = 120
+    // Battle timer is at panelX = 1000, panelY - 30 = 120 (where panelY = 150)
     // So turn text should be at centerX (between grids) and above battle timer
     const battleTimerY = 120; // panelY - 30 where panelY = 150
-    const turnTextY = battleTimerY - 30; // Above battle timer
+    const turnTextY = battleTimerY - 30; // Above battle timer (90)
     
     this.turnText = this.add.text(centerX, turnTextY, '', {
       fontSize: '18px',
