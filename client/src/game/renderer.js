@@ -2858,9 +2858,9 @@ export class GameRenderer extends Phaser.Scene {
     const separatorWidth = 20;
     const gridWidth = this.gridSize * GRID_TILE_SIZE;
     const centerX = GRID_OFFSET_X + gridWidth + separatorWidth / 2;
-    const turnTextY = GRID_OFFSET_Y - 20; // Same as turnText
-    const timerY = turnTextY + 35; // Below turnText (22px font + some spacing)
-    const gridLabelWidth = this.gridSize * GRID_TILE_SIZE; // Same width as grid labels
+    const battleTimerY = GRID_OFFSET_Y - 20; // Timer position (below grid labels)
+    const timerY = battleTimerY; // At battle timer position
+    const gridLabelWidth = this.gridSize * GRID_TILE_SIZE; // Same width as grid labels (same as "زمین شما" and "زمین حریف")
     
     // Create or update timer text
     if (!this.battleTurnTimerText) {
