@@ -260,10 +260,7 @@ function handleRequestShot(ws, data) {
     // Update mana
     gameManager.updateManaAfterShot(playerId, data.launcherId);
     
-    // Switch turn after shot
-    gameManager.switchTurn();
-    
-    // Check win condition
+    // Check win condition before switching turn
     const winner = gameManager.checkWinCondition();
     if (winner) {
       logger.room(roomId, `Game over! Winner: ${winner}`);
@@ -272,7 +269,7 @@ function handleRequestShot(ws, data) {
         winner
       });
     } else {
-      // Switch turn after shot
+      // Switch turn after shot (only once)
       logger.room(roomId, 'Switching turn after shot');
       gameManager.switchTurn();
     }

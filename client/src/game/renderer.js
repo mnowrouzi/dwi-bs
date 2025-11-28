@@ -3035,9 +3035,22 @@ export class GameRenderer extends Phaser.Scene {
       return;
     }
     
-    // Clear existing timer
+    // Clear existing timer completely before starting new one
     this.stopBattleTurnTimer();
     
+    // Small delay to ensure previous timer is fully destroyed
+    this.time.delayedCall(50, () => {
+      // Double check it's still player's turn
+      if (this.currentTurn !== this.gameState.playerId || this.currentPhase !== GAME_PHASES.BATTLE) {
+        logger.info('Timer start cancelled - turn or phase changed');
+        return;
+      }
+      
+      this.startBattleTurnTimerInternal();
+    });
+  }
+  
+  startBattleTurnTimerInternal() {
     const turnTime = this.turnTimeSeconds;
     let timeLeft = turnTime;
     
@@ -3096,6 +3109,13 @@ export class GameRenderer extends Phaser.Scene {
         }
       },
       repeat: turnTime - 1
+    });
+    
+    logger.info('Battle turn timer started', {
+      timeLeft: timeLeft,
+      turnTime: turnTime,
+      currentTurn: this.currentTurn,
+      playerId: this.gameState.playerId
     });
   }
   
@@ -3163,7 +3183,8 @@ export class GameRenderer extends Phaser.Scene {
       attackerId: data.attackerId,
       pathLength: data.pathTiles?.length || 0,
       hasDamage: !!data.damage,
-      isMyShot: data.attackerId === this.gameState.playerId
+      isMyShot: data.attackerId === this.gameState.playerId,
+      pathTiles: data.pathTiles
     });
     
     // Remove shot from pending shots if it's our shot
@@ -3176,27 +3197,60 @@ export class GameRenderer extends Phaser.Scene {
           remainingShots: this.pendingShots.length
         });
       }
+      
+      // Clear aiming state after shot
+      this.selectedLauncherForShots = null;
+      this.currentPathTiles = [];
+      this.pathSelectionMode = false;
+      this.aimingMode = false;
+      this.isDrawingPath = false;
+      if (this.pathHighlightGraphics) {
+        this.pathHighlightGraphics.clear();
+      }
+      this.clearLauncherHighlight();
     }
     
     if (data.intercepted) {
       this.onNotification(faTexts.notifications.missileIntercepted);
       this.audioController.playSound('defense_intercept');
-      } else {
-        // Animate missile - get launcher type from damage data
-        const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
-                        this.opponentUnits.launchers.find(l => l.id === data.launcherId);
-        const launcherType = launcher ? launcher.type : null;
-        
-        // Animate missile with launcher type to use correct sprite
-        this.animateMissile(data.pathTiles, () => {
-          // Show explosion
-          const lastTile = data.pathTiles[data.pathTiles.length - 1];
-          // Determine explosion type based on launcher
-          const explosionType = launcherType || 'default';
-          this.showExplosion(lastTile.x, lastTile.y, explosionType);
-          this.audioController.playSound('explosion');
-        }, launcherType);
-      }
+    } else if (data.pathTiles && data.pathTiles.length >= 2) {
+      // Animate missile - get launcher type from damage data
+      const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
+                      this.opponentUnits.launchers.find(l => l.id === data.launcherId);
+      const launcherType = launcher ? launcher.type : null;
+      
+      // Convert pathTiles to format expected by animateMissile (with isPlayerGrid)
+      // Path always starts from player grid and can cross to opponent grid
+      const formattedPathTiles = data.pathTiles.map((tile, index) => {
+        // First tile is always in player grid (where launcher is)
+        // We need to determine if tile is in player or opponent grid
+        // For now, assume tiles are in order: player grid first, then opponent grid
+        const isPlayerGrid = tile.isPlayerGrid !== undefined ? tile.isPlayerGrid : 
+                            (index === 0 || (tile.x < this.gridSize && tile.y < this.gridSize));
+        return {
+          x: tile.x,
+          y: tile.y,
+          isPlayerGrid: isPlayerGrid
+        };
+      });
+      
+      logger.info('Animating missile', {
+        pathLength: formattedPathTiles.length,
+        launcherType: launcherType,
+        firstTile: formattedPathTiles[0],
+        lastTile: formattedPathTiles[formattedPathTiles.length - 1]
+      });
+      
+      // Animate missile with launcher type to use correct sprite
+      this.animateMissile(formattedPathTiles, () => {
+        // Show explosion
+        const lastTile = formattedPathTiles[formattedPathTiles.length - 1];
+        // Determine explosion type based on launcher
+        const explosionType = launcherType || 'default';
+        this.showExplosion(lastTile.x, lastTile.y, explosionType);
+        this.audioController.playSound('explosion');
+      }, launcherType);
+    }
     
     // Update units
     if (data.damage) {
