@@ -272,8 +272,11 @@ export class GameManager {
 
     logger.room(this.roomId, `Turn: ${this.currentTurn}`);
     
-    // Send battle state to each player with their own units
+    // Send battle state to each player with their own units and opponent units
     this.players.forEach((player, playerId) => {
+      const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+      const opponent = this.players.get(opponentId);
+      
       player.ws.send(JSON.stringify({
       type: MESSAGE_TYPES.BATTLE_STATE,
       phase: GAME_PHASES.BATTLE,
@@ -291,6 +294,22 @@ export class GameManager {
             destroyed: l.destroyed
           })),
           defenses: player.units.defenses.map(d => ({
+            id: d.id,
+            type: d.type,
+            x: d.x,
+            y: d.y,
+            destroyed: d.destroyed
+          }))
+        },
+        opponentUnits: {
+          launchers: opponent.units.launchers.map(l => ({
+            id: l.id,
+            type: l.type,
+            x: l.x,
+            y: l.y,
+            destroyed: l.destroyed
+          })),
+          defenses: opponent.units.defenses.map(d => ({
             id: d.id,
             type: d.type,
             x: d.x,

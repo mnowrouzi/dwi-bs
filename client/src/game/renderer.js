@@ -58,6 +58,7 @@ export class GameRenderer extends Phaser.Scene {
     this.gridSize = this.config.gridSize;
     this.playerUnits = { launchers: [], defenses: [] };
     this.opponentUnits = { launchers: [], defenses: [] };
+    this.destroyedLaunchersHighlight = null; // Graphics object for highlighting destroyed launchers in opponent grid
     this.currentPhase = GAME_PHASES.WAITING; // Start in WAITING, will be set to BUILD when server sends BUILD_PHASE_STATE
     // Use budgets from config
     this.buildBudget = this.config.buildBudget || 10;
@@ -2971,6 +2972,14 @@ export class GameRenderer extends Phaser.Scene {
     // Update units from server (they should persist from build phase)
     if (data.units) {
       this.playerUnits = data.units;
+    }
+    
+    // Update opponent units from server
+    if (data.opponentUnits) {
+      this.opponentUnits = data.opponentUnits;
+    }
+    
+    if (data.units || data.opponentUnits) {
       this.renderUnits(); // Render units in battle phase
     }
     
@@ -3272,7 +3281,29 @@ export class GameRenderer extends Phaser.Scene {
         data.damage.launchers.forEach(dmg => {
           const unit = this.playerUnits.launchers.find(u => u.id === dmg.id) ||
                       this.opponentUnits.launchers.find(u => u.id === dmg.id);
-          if (unit) unit.destroyed = true;
+          if (unit) {
+            unit.destroyed = true;
+            
+            // If this is opponent's launcher and we destroyed it, highlight it
+            const isOpponentLauncher = this.opponentUnits.launchers.find(u => u.id === dmg.id);
+            const isMyShot = data.attackerId === this.gameState.playerId;
+            
+            if (isMyShot) {
+              // Check if this is opponent's launcher (not our own)
+              // If unit is in opponentUnits, it's opponent's launcher
+              const opponentLauncher = this.opponentUnits.launchers.find(u => u.id === dmg.id);
+              if (opponentLauncher) {
+                // Highlight destroyed launcher in opponent grid
+                // dmg contains: { id, type, x, y } from server
+                this.highlightDestroyedLauncher({
+                  id: dmg.id,
+                  type: dmg.type || opponentLauncher.type,
+                  x: dmg.x,
+                  y: dmg.y
+                });
+              }
+            }
+          }
         });
       }
       if (data.damage.defenses) {
@@ -3483,6 +3514,50 @@ export class GameRenderer extends Phaser.Scene {
       this.turnText.setText(faTexts.game.opponentTurn);
       this.turnText.setColor('#ff0000');
     }
+  }
+  
+  highlightDestroyedLauncher(launcher) {
+    // Create or reuse graphics object for destroyed launchers highlight
+    if (!this.destroyedLaunchersHighlight) {
+      this.destroyedLaunchersHighlight = this.add.graphics();
+      this.destroyedLaunchersHighlight.setDepth(50); // Above grid, below units
+    }
+    
+    // Get launcher config for size
+    const launcherConfig = this.config.launchers.find(l => l.id === launcher.type);
+    if (!launcherConfig) {
+      logger.warn('highlightDestroyedLauncher: Launcher config not found', { launcherType: launcher.type });
+      return;
+    }
+    
+    const [sizeX, sizeY] = launcherConfig.size;
+    
+    // Calculate opponent grid offset
+    const separatorWidth = 4;
+    const opponentOffsetX = GRID_OFFSET_X + (this.gridSize * GRID_TILE_SIZE) + separatorWidth;
+    
+    // Draw red transparent rectangles for each tile occupied by the launcher
+    this.destroyedLaunchersHighlight.fillStyle(0xff0000, 0.4); // Red with 40% opacity
+    
+    for (let dy = 0; dy < sizeY; dy++) {
+      for (let dx = 0; dx < sizeX; dx++) {
+        const x = opponentOffsetX + (launcher.x + dx) * GRID_TILE_SIZE;
+        const y = GRID_OFFSET_Y + (launcher.y + dy) * GRID_TILE_SIZE;
+        
+        this.destroyedLaunchersHighlight.fillRect(x, y, GRID_TILE_SIZE, GRID_TILE_SIZE);
+        
+        // Draw border for better visibility
+        this.destroyedLaunchersHighlight.lineStyle(2, 0xff0000, 0.8);
+        this.destroyedLaunchersHighlight.strokeRect(x, y, GRID_TILE_SIZE, GRID_TILE_SIZE);
+      }
+    }
+    
+    logger.info('Destroyed launcher highlighted', {
+      launcherId: launcher.id,
+      launcherType: launcher.type,
+      position: { x: launcher.x, y: launcher.y },
+      size: { sizeX, sizeY }
+    });
   }
 }
 

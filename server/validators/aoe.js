@@ -23,6 +23,7 @@ export function calculateAOEDamage(centerX, centerY, aoe, opponentUnits, gridSiz
             launcher.destroyed = true;
             damage.launchers.push({
               id: launcher.id,
+              type: launcher.type,
               x: launcher.x,
               y: launcher.y
             });
