@@ -2013,6 +2013,64 @@ export class GameRenderer extends Phaser.Scene {
     this.onNotification(faTexts.notifications.waitingForOpponent);
   }
 
+  placeRandomLauncher() {
+    // Get available launchers from config
+    const availableLaunchers = this.config.launchers || [];
+    if (availableLaunchers.length === 0) {
+      logger.warn('No launchers available in config for random placement');
+      return;
+    }
+    
+    // Select a random launcher
+    const randomLauncher = availableLaunchers[Math.floor(Math.random() * availableLaunchers.length)];
+    
+    // Check if we have enough budget
+    if (this.buildBudget < randomLauncher.cost) {
+      logger.warn('Not enough budget for random launcher placement', {
+        budget: this.buildBudget,
+        cost: randomLauncher.cost
+      });
+      return;
+    }
+    
+    // Find a random valid position on player's grid (left side)
+    // Player grid is from (0, 0) to (gridSize/2 - 1, gridSize - 1)
+    const maxX = Math.floor(this.gridSize / 2) - 1;
+    const maxY = this.gridSize - 1;
+    const [sizeX, sizeY] = randomLauncher.size || [1, 1];
+    
+    // Try to find a valid position (not overlapping with existing units)
+    let attempts = 0;
+    let placed = false;
+    
+    while (attempts < 50 && !placed) {
+      const x = Math.floor(Math.random() * (maxX - sizeX + 1));
+      const y = Math.floor(Math.random() * (maxY - sizeY + 1));
+      
+      // Check if position is valid (not overlapping)
+      const canPlace = this.unitPlacement.canPlaceUnit(x, y, sizeX, sizeY);
+      
+      if (canPlace) {
+        logger.info('Placing random launcher', {
+          launcherType: randomLauncher.id,
+          position: { x, y },
+          cost: randomLauncher.cost
+        });
+        
+        // Place the launcher (silently, no notification)
+        placed = this.unitPlacement.placeLauncher(x, y, randomLauncher.id);
+      }
+      
+      attempts++;
+    }
+    
+    if (!placed) {
+      logger.warn('Could not find valid position for random launcher after 50 attempts');
+    } else {
+      this.onNotification(`یک موشک‌انداز ${randomLauncher.titleFA} به صورت خودکار قرار گرفت`);
+    }
+  }
+
   endTurn() {
     logger.info('Ending turn without firing', {
       currentTurn: this.currentTurn,
