@@ -33,14 +33,11 @@ export function validatePath(pathTiles, maxRange, gridSize) {
   }
 
   // Check grid bounds - path can span both player and opponent grids
-  // Player grid: x < gridSize
-  // Opponent grid: x >= gridSize (but we need to check if it's within valid range)
-  // Actually, path tiles are relative to the grid, so x and y should be 0 to gridSize-1
-  // But if path crosses grids, we need to handle it differently
+  // Path tiles are relative coordinates (0 to gridSize-1 for each grid)
+  // When path crosses from player grid to opponent grid, tiles are still 0 to gridSize-1
+  // So we just need to check that x and y are within 0 to gridSize-1
   for (const tile of pathTiles) {
-    // Allow tiles in both grids (0 to gridSize*2-1 for x if crossing grids)
-    // But for now, let's check if tile is within reasonable bounds
-    if (tile.x < 0 || tile.x >= gridSize * 2 || tile.y < 0 || tile.y >= gridSize) {
+    if (tile.x < 0 || tile.x >= gridSize || tile.y < 0 || tile.y >= gridSize) {
       console.log('Path out of bounds', { tile, gridSize });
       return { success: false, error: 'Path out of bounds' };
     }
