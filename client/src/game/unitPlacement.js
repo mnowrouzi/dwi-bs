@@ -117,21 +117,24 @@ export class UnitPlacement {
     this.scene.onNotification('واحد حذف شد و بودجه برگشت');
   }
 
-  placeLauncher(x, y) {
-    if (!this.selectedLauncherType) {
+  placeLauncher(x, y, launcherType = null) {
+    // Use provided launcherType or selectedLauncherType
+    const typeToUse = launcherType || this.selectedLauncherType;
+    
+    if (!typeToUse) {
       this.scene.onNotification('لطفاً ابتدا نوع موشک‌انداز را انتخاب کنید');
-      return;
+      return false;
     }
     
-    const launcherConfig = this.config.launchers.find(l => l.id === this.selectedLauncherType);
+    const launcherConfig = this.config.launchers.find(l => l.id === typeToUse);
     if (!launcherConfig) {
       this.scene.onNotification('نوع موشک‌انداز نامعتبر است');
-      return;
+      return false;
     }
     
     if (this.scene.buildBudget < launcherConfig.cost) {
       this.scene.onNotification('بودجه ساخت کافی نیست');
-      return;
+      return false;
     }
     
     // Check if position is valid (not overlapping)
@@ -139,14 +142,16 @@ export class UnitPlacement {
     const canPlace = this.canPlaceUnit(x, y, sizeX, sizeY);
     
     if (!canPlace) {
-      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
-      return;
+      if (!launcherType) { // Only show notification if not auto-placing
+        this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
+      }
+      return false;
     }
     
     // Add to placed units
     this.placedUnits.push({
       type: 'launcher',
-      launcherType: this.selectedLauncherType,
+      launcherType: typeToUse,
       x,
       y
     });
@@ -169,11 +174,14 @@ export class UnitPlacement {
     // Render units immediately (optimistic update)
     this.scene.renderUnits();
     
-    // Clear selection after placing
-    this.selectedLauncherType = null;
+    // Clear selection after placing (only if using selectedLauncherType)
+    if (!launcherType) {
+      this.selectedLauncherType = null;
+      // Show success message
+      this.scene.onNotification(`موشک‌انداز ${launcherConfig.titleFA} با موفقیت قرار گرفت`);
+    }
     
-    // Show success message
-    this.scene.onNotification(`موشک‌انداز ${launcherConfig.titleFA} با موفقیت قرار گرفت`);
+    return true;
   }
 
   placeDefense(x, y) {

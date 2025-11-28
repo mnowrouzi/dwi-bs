@@ -2268,10 +2268,25 @@ export class GameRenderer extends Phaser.Scene {
     if (data.players === 2) {
       if (this.currentPhase === GAME_PHASES.BUILD || this.currentPhase === GAME_PHASES.WAITING) {
         this.onNotification(faTexts.notifications.opponentConnected);
-        // If we're in waiting phase, the server should start build phase
-        // But if we're already in build phase, we just show the notification
       }
-      // Don't start timer here - wait for BUILD_PHASE_STATE message
+      // If we're player1 and in WAITING phase, start build phase timer now
+      // Player1's timer starts from the moment they create the room
+      if (this.currentPhase === GAME_PHASES.WAITING && !this.buildPhaseTimer && !this.timerText) {
+        logger.info('Player1: Starting build phase timer on room creation');
+        this.currentPhase = GAME_PHASES.BUILD;
+        this.onPhaseChange(this.currentPhase);
+        this.showUnitPanelInBuild();
+        this.startBuildPhaseTimer();
+      }
+    } else if (data.players === 1) {
+      // Player1 just created room - start timer immediately
+      if (this.currentPhase === GAME_PHASES.WAITING && !this.buildPhaseTimer && !this.timerText) {
+        logger.info('Player1: Starting build phase timer immediately after room creation');
+        this.currentPhase = GAME_PHASES.BUILD;
+        this.onPhaseChange(this.currentPhase);
+        this.showUnitPanelInBuild();
+        this.startBuildPhaseTimer();
+      }
     }
   }
 
@@ -2317,12 +2332,15 @@ export class GameRenderer extends Phaser.Scene {
       this.budgetText.setText(`${faTexts.game.budget}: ${this.budget}`);
     }
     
-    // Start 30-second timer for build phase only once when both players are connected
-    // Timer should only start when we receive BUILD_PHASE_STATE after both players are connected
-    // Check if timer hasn't started yet and we're in build phase
-    // Also check if we're not already ready (to prevent restarting timer after error)
+    // Start 30-second timer for build phase
+    // Player1: timer starts when they create room (handled in handleRoomUpdate)
+    // Player2: timer starts when they join (BUILD_PHASE_STATE is sent when player2 joins)
+    // Check if timer hasn't started yet and we're in build phase and not ready
     if (this.currentPhase === GAME_PHASES.BUILD && !this.buildPhaseTimer && !this.timerText && !this.isReady) {
-      // Timer starts when build phase state is received (which means both players are connected)
+      logger.info('Starting build phase timer', {
+        playerId: this.gameState.playerId,
+        currentPhase: this.currentPhase
+      });
       this.startBuildPhaseTimer();
     }
   }
@@ -2353,6 +2371,18 @@ export class GameRenderer extends Phaser.Scene {
           this.timerText.destroy();
           this.timerText = null;
         }
+        this.buildPhaseTimer = null;
+        
+        // Check if player has any launchers
+        const launchers = this.playerUnits?.launchers || [];
+        const aliveLaunchers = launchers.filter(l => !l.destroyed);
+        
+        if (aliveLaunchers.length === 0) {
+          // No launchers - place a random launcher automatically
+          logger.info('Timer expired with no launchers - placing random launcher');
+          this.placeRandomLauncher();
+        }
+        
         // Auto-send ready if not already ready
         if (!this.isReady) {
           this.sendReady();
