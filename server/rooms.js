@@ -1,5 +1,5 @@
 import { GameManager } from './gameManager.js';
-import { MESSAGE_TYPES } from '../shared/types.js';
+import { MESSAGE_TYPES, GAME_PHASES } from '../shared/types.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
