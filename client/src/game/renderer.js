@@ -2155,6 +2155,14 @@ export class GameRenderer extends Phaser.Scene {
   }
   
   hideBuildPhaseUI() {
+    logger.info('hideBuildPhaseUI called', {
+      hasBuildPhaseTimer: !!this.buildPhaseTimer,
+      hasTimerText: !!this.timerText,
+      hasBuildBudgetText: !!this.buildBudgetText,
+      hasLauncherButtonsGroup: !!this.launcherButtonsGroup,
+      hasDefenseButtonsGroup: !!this.defenseButtonsGroup
+    });
+    
     // Hide build phase timer
     if (this.buildPhaseTimer) {
       clearInterval(this.buildPhaseTimer);
@@ -2168,10 +2176,40 @@ export class GameRenderer extends Phaser.Scene {
     // Hide build budget text
     if (this.buildBudgetText) {
       this.buildBudgetText.setVisible(false);
+      logger.info('Build budget text hidden');
     }
     
-    // Hide unit panel (launcher and defense buttons)
-    this.hideUnitPanelInBattle();
+    // Hide launcher buttons and their texts
+    if (this.launcherButtonsGroup) {
+      if (this.launcherButtonsGroup.label) {
+        this.launcherButtonsGroup.label.setVisible(false);
+      }
+      this.launcherButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(false);
+        if (buttonData.titleText) buttonData.titleText.setVisible(false);
+        if (buttonData.costText) buttonData.costText.setVisible(false);
+      });
+      logger.info('Launcher buttons hidden', {
+        buttonCount: this.launcherButtonsGroup.buttons.length
+      });
+    }
+    
+    // Hide defense buttons and their texts
+    if (this.defenseButtonsGroup) {
+      if (this.defenseButtonsGroup.label) {
+        this.defenseButtonsGroup.label.setVisible(false);
+      }
+      this.defenseButtonsGroup.buttons.forEach(buttonData => {
+        if (buttonData.btn) buttonData.btn.setVisible(false);
+        if (buttonData.titleText) buttonData.titleText.setVisible(false);
+        if (buttonData.costText) buttonData.costText.setVisible(false);
+      });
+      logger.info('Defense buttons hidden', {
+        buttonCount: this.defenseButtonsGroup.buttons.length
+      });
+    }
+    
+    // Note: We don't hide the ready button here - it should remain visible but disabled
   }
 
   placeRandomLauncher() {
