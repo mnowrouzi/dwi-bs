@@ -481,14 +481,21 @@ export class GameRenderer extends Phaser.Scene {
     // FIRE button is at fireButtonX = 1000, fireButtonY = 600
     const panelX = 1000; // Right side, same as unit panel
     const fireButtonY = 600; // FIRE button Y position
-    const barootY = fireButtonY - 50; // Above FIRE button
+    const barootY = fireButtonY - 50; // Above FIRE button (550)
     
     this.budgetText = this.add.text(panelX, barootY, 'مقدار باروت: 0', {
       fontSize: '24px',
       color: '#ffd700',
       fontFamily: 'Vazirmatn, Tahoma',
       fontWeight: 'bold'
-    }).setOrigin(0, 0).setDepth(100); // Left align
+    }).setOrigin(0, 0).setDepth(100); // Left align at top-left corner
+    
+    logger.info('Baroot text created', {
+      x: panelX,
+      y: barootY,
+      fireButtonY: fireButtonY,
+      visible: this.currentPhase === GAME_PHASES.BATTLE
+    });
     
     // Show baroot text in battle phase by default, hide in build phase
     if (this.currentPhase === GAME_PHASES.BATTLE) {
@@ -2767,10 +2774,23 @@ export class GameRenderer extends Phaser.Scene {
     }
     
     // Show baroot display in battle phase (by default)
+    // Also update position to ensure it's in the right place
     if (this.budgetText) {
+      const panelX = 1000; // Right side
+      const fireButtonY = 600; // FIRE button Y position
+      const barootY = fireButtonY - 50; // Above FIRE button
+      
+      // Update position to ensure it's correct
+      this.budgetText.setPosition(panelX, barootY);
       this.budgetText.setVisible(true);
       // Update baroot display to show current value (0 if no launcher selected)
       this.updateBarootDisplay();
+      
+      logger.info('Baroot text position updated in handleBattleState', {
+        x: panelX,
+        y: barootY,
+        visible: true
+      });
     }
     
     // Hide unit panel buttons in battle phase
