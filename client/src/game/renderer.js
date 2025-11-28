@@ -3214,19 +3214,36 @@ export class GameRenderer extends Phaser.Scene {
       this.onNotification(faTexts.notifications.missileIntercepted);
       this.audioController.playSound('defense_intercept');
     } else if (data.pathTiles && data.pathTiles.length >= 2) {
-      // Animate missile - get launcher type from damage data
-      const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
-                      this.opponentUnits.launchers.find(l => l.id === data.launcherId);
-      const launcherType = launcher ? launcher.type : null;
+        // Animate missile - get launcher type from damage data
+        const launcher = this.playerUnits.launchers.find(l => l.id === data.launcherId) ||
+                        this.opponentUnits.launchers.find(l => l.id === data.launcherId);
+        const launcherType = launcher ? launcher.type : null;
       
       // Convert pathTiles to format expected by animateMissile (with isPlayerGrid)
-      // Path always starts from player grid and can cross to opponent grid
+      // Path always starts from player grid (where launcher is) and can cross to opponent grid
+      // We need to determine which grid each tile belongs to based on attacker
+      const isAttackerPlayer1 = data.attackerId === 'player1';
       const formattedPathTiles = data.pathTiles.map((tile, index) => {
-        // First tile is always in player grid (where launcher is)
-        // We need to determine if tile is in player or opponent grid
-        // For now, assume tiles are in order: player grid first, then opponent grid
-        const isPlayerGrid = tile.isPlayerGrid !== undefined ? tile.isPlayerGrid : 
-                            (index === 0 || (tile.x < this.gridSize && tile.y < this.gridSize));
+        // Determine if tile is in attacker's grid or opponent's grid
+        // For player1: tiles with x < gridSize are in player grid, x >= gridSize are in opponent grid
+        // For player2: tiles with x < gridSize are in opponent grid, x >= gridSize are in player grid
+        // But wait - pathTiles from server are relative to attacker's perspective
+        // Actually, pathTiles are absolute coordinates, so we need to check based on grid boundaries
+        let isPlayerGrid;
+        if (tile.isPlayerGrid !== undefined) {
+          isPlayerGrid = tile.isPlayerGrid;
+        } else {
+          // Determine grid based on tile position and attacker
+          // If attacker is player1, their grid is on the left (x < gridSize)
+          // If attacker is player2, their grid is on the right (x >= gridSize)
+          if (isAttackerPlayer1) {
+            // Player1's grid: x < gridSize
+            isPlayerGrid = tile.x < this.gridSize;
+          } else {
+            // Player2's grid: x >= gridSize
+            isPlayerGrid = tile.x >= this.gridSize;
+          }
+        }
         return {
           x: tile.x,
           y: tile.y,
@@ -3240,17 +3257,17 @@ export class GameRenderer extends Phaser.Scene {
         firstTile: formattedPathTiles[0],
         lastTile: formattedPathTiles[formattedPathTiles.length - 1]
       });
-      
-      // Animate missile with launcher type to use correct sprite
+        
+        // Animate missile with launcher type to use correct sprite
       this.animateMissile(formattedPathTiles, () => {
-        // Show explosion
+          // Show explosion
         const lastTile = formattedPathTiles[formattedPathTiles.length - 1];
-        // Determine explosion type based on launcher
-        const explosionType = launcherType || 'default';
-        this.showExplosion(lastTile.x, lastTile.y, explosionType);
-        this.audioController.playSound('explosion');
-      }, launcherType);
-    }
+          // Determine explosion type based on launcher
+          const explosionType = launcherType || 'default';
+          this.showExplosion(lastTile.x, lastTile.y, explosionType);
+          this.audioController.playSound('explosion');
+        }, launcherType);
+      }
     
     // Update units
     if (data.damage) {
@@ -3309,7 +3326,7 @@ export class GameRenderer extends Phaser.Scene {
       const offsetX = tile.isPlayerGrid !== false ? GRID_OFFSET_X : opponentOffsetX;
       return {
         x: offsetX + tile.x * GRID_TILE_SIZE + GRID_TILE_SIZE / 2,
-        y: GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2
+      y: GRID_OFFSET_Y + tile.y * GRID_TILE_SIZE + GRID_TILE_SIZE / 2
       };
     };
     
@@ -3318,16 +3335,26 @@ export class GameRenderer extends Phaser.Scene {
     
     const points = pathTiles.map(tile => getTilePosition(tile));
     
-    const timeline = this.tweens.timeline({
-      onComplete: () => {
-        missile.destroy();
-        if (onComplete) onComplete();
-      }
+    logger.info('Starting missile animation', {
+      pathLength: pathTiles.length,
+      startPos: startPos,
+      points: points,
+      launcherType: launcherType
     });
     
     // Get missile move time per tile from config (default: 100ms = 0.1s per tile)
     const moveTimePerTile = this.config.battle?.missileMoveTimePerTile || 100;
     
+    // Create timeline using createTimeline (Phaser 3 API)
+    const timeline = this.tweens.createTimeline({
+      onComplete: () => {
+        logger.info('Missile animation complete');
+        missile.destroy();
+        if (onComplete) onComplete();
+      }
+    });
+    
+    // Add tween for each segment of the path
     for (let i = 1; i < points.length; i++) {
       timeline.add({
         targets: missile,
@@ -3338,6 +3365,7 @@ export class GameRenderer extends Phaser.Scene {
       });
     }
     
+    // Play the timeline
     timeline.play();
     this.audioController.playSound('launch');
   }
