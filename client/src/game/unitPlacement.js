@@ -143,7 +143,7 @@ export class UnitPlacement {
     
     if (!canPlace) {
       if (!launcherType) { // Only show notification if not auto-placing
-        this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
+      this.scene.onNotification('نمی‌توان در این موقعیت قرار داد (ممکن است با واحد دیگری همپوشانی داشته باشد)');
       }
       return false;
     }
@@ -174,9 +174,9 @@ export class UnitPlacement {
     
     // Clear selection after placing (only if using selectedLauncherType)
     if (!launcherType) {
-      this.selectedLauncherType = null;
-      // Show success message
-      this.scene.onNotification(`موشک‌انداز ${launcherConfig.titleFA} با موفقیت قرار گرفت`);
+    this.selectedLauncherType = null;
+    // Show success message
+    this.scene.onNotification(`موشک‌انداز ${launcherConfig.titleFA} با موفقیت قرار گرفت`);
     }
     
     return true;

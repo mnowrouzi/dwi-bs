@@ -57,8 +57,8 @@ export class GameManager {
     // Send build phase state to each player with their own budget
     this.players.forEach((player, playerId) => {
       const message = {
-        type: MESSAGE_TYPES.BUILD_PHASE_STATE,
-        phase: GAME_PHASES.BUILD,
+      type: MESSAGE_TYPES.BUILD_PHASE_STATE,
+      phase: GAME_PHASES.BUILD,
         buildBudget: player.buildBudget,
         gridSize: this.config.gridSize,
         playerId: playerId // Include playerId in message
@@ -263,7 +263,7 @@ export class GameManager {
         logger.player(playerId, `First turn mana: ${this.config.mana.startMana} + ${this.config.mana.manaPerTurn} = ${player.mana}`);
       } else {
         // Player2 starts with just startMana (will get manaPerTurn when turn switches to them)
-        player.mana = this.config.mana.startMana;
+      player.mana = this.config.mana.startMana;
         logger.player(playerId, `Initial mana: ${player.mana} (will get +${this.config.mana.manaPerTurn} when turn starts)`);
       }
       player.shotsThisTurn = 0;
@@ -275,12 +275,12 @@ export class GameManager {
     // Send battle state to each player with their own units
     this.players.forEach((player, playerId) => {
       player.ws.send(JSON.stringify({
-        type: MESSAGE_TYPES.BATTLE_STATE,
-        phase: GAME_PHASES.BATTLE,
-        currentTurn: this.currentTurn,
-        mana: {
-          player1: this.players.get('player1').mana,
-          player2: this.players.get('player2').mana
+      type: MESSAGE_TYPES.BATTLE_STATE,
+      phase: GAME_PHASES.BATTLE,
+      currentTurn: this.currentTurn,
+      mana: {
+        player1: this.players.get('player1').mana,
+        player2: this.players.get('player2').mana
         },
         units: {
           launchers: player.units.launchers.map(l => ({

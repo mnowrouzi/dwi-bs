@@ -3038,16 +3038,8 @@ export class GameRenderer extends Phaser.Scene {
     // Clear existing timer completely before starting new one
     this.stopBattleTurnTimer();
     
-    // Small delay to ensure previous timer is fully destroyed
-    this.time.delayedCall(50, () => {
-      // Double check it's still player's turn
-      if (this.currentTurn !== this.gameState.playerId || this.currentPhase !== GAME_PHASES.BATTLE) {
-        logger.info('Timer start cancelled - turn or phase changed');
-        return;
-      }
-      
-      this.startBattleTurnTimerInternal();
-    });
+    // Start timer immediately
+    this.startBattleTurnTimerInternal();
   }
   
   startBattleTurnTimerInternal() {
@@ -3220,15 +3212,10 @@ export class GameRenderer extends Phaser.Scene {
         const launcherType = launcher ? launcher.type : null;
       
       // Convert pathTiles to format expected by animateMissile (with isPlayerGrid)
-      // Path always starts from player grid (where launcher is) and can cross to opponent grid
-      // We need to determine which grid each tile belongs to based on attacker
+      // Path always starts from attacker's grid and can cross to opponent grid
+      // Determine which grid each tile belongs to based on attacker
       const isAttackerPlayer1 = data.attackerId === 'player1';
       const formattedPathTiles = data.pathTiles.map((tile, index) => {
-        // Determine if tile is in attacker's grid or opponent's grid
-        // For player1: tiles with x < gridSize are in player grid, x >= gridSize are in opponent grid
-        // For player2: tiles with x < gridSize are in opponent grid, x >= gridSize are in player grid
-        // But wait - pathTiles from server are relative to attacker's perspective
-        // Actually, pathTiles are absolute coordinates, so we need to check based on grid boundaries
         let isPlayerGrid;
         if (tile.isPlayerGrid !== undefined) {
           isPlayerGrid = tile.isPlayerGrid;
@@ -3236,12 +3223,20 @@ export class GameRenderer extends Phaser.Scene {
           // Determine grid based on tile position and attacker
           // If attacker is player1, their grid is on the left (x < gridSize)
           // If attacker is player2, their grid is on the right (x >= gridSize)
+          // But we need to think from the viewer's perspective
+          // For the current player viewing: if attacker is player1, player1's grid is on left
+          // For the current player viewing: if attacker is player2, player2's grid is on right
+          const isViewerPlayer1 = this.gameState.playerId === 'player1';
           if (isAttackerPlayer1) {
-            // Player1's grid: x < gridSize
-            isPlayerGrid = tile.x < this.gridSize;
+            // Attacker is player1, so their grid is on the left
+            // For viewer: if viewer is player1, attacker's grid is their grid (left)
+            // For viewer: if viewer is player2, attacker's grid is opponent's grid (left)
+            isPlayerGrid = isViewerPlayer1 ? (tile.x < this.gridSize) : (tile.x >= this.gridSize);
           } else {
-            // Player2's grid: x >= gridSize
-            isPlayerGrid = tile.x >= this.gridSize;
+            // Attacker is player2, so their grid is on the right
+            // For viewer: if viewer is player1, attacker's grid is opponent's grid (right)
+            // For viewer: if viewer is player2, attacker's grid is their grid (right)
+            isPlayerGrid = isViewerPlayer1 ? (tile.x >= this.gridSize) : (tile.x < this.gridSize);
           }
         }
         return {
@@ -3338,7 +3333,7 @@ export class GameRenderer extends Phaser.Scene {
     logger.info('Starting missile animation', {
       pathLength: pathTiles.length,
       startPos: startPos,
-      points: points,
+      points: points.slice(0, 3), // Log first 3 points
       launcherType: launcherType
     });
     
