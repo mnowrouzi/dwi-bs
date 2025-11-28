@@ -2435,7 +2435,7 @@ export class GameRenderer extends Phaser.Scene {
         this.currentTurn = data.currentTurn;
         this.mana = data.mana[this.gameState.playerId];
         this.shotsThisTurn = 0;
-        this.manaBar.updateMana(this.mana);
+        // Mana bar removed - no need to update UI
         this.updateTurnIndicator();
         this.audioController.playSound('turnChange');
         

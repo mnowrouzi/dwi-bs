@@ -244,6 +244,9 @@ function handleRequestShot(ws, data) {
     // Update mana
     gameManager.updateManaAfterShot(playerId, data.launcherId);
     
+    // Switch turn after shot
+    gameManager.switchTurn();
+    
     // Check win condition
     const winner = gameManager.checkWinCondition();
     if (winner) {
