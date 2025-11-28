@@ -2358,7 +2358,10 @@ export class GameRenderer extends Phaser.Scene {
     
     // Player1: Start timer immediately when room is created (players === 1)
     // This happens when player1 creates a room and enters the game screen
-    if (data.players === 1 && this.gameState.playerId === 'player1') {
+    // Check both data.playerId and this.gameState.playerId to ensure we're player1
+    const isPlayer1 = (data.playerId === 'player1' || this.gameState?.playerId === 'player1');
+    
+    if (data.players === 1 && isPlayer1) {
       logger.info('Player1: Room created, starting build phase timer', {
         currentPhase: this.currentPhase,
         hasBuildPhaseTimer: !!this.buildPhaseTimer,
